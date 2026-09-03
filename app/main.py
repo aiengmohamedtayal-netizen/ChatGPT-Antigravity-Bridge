@@ -38,22 +38,15 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing ChatGPT × Antigravity Bridge...")
     database.init_db()
 
-    # Seed default project if empty
+    # Synchronize all authorized workspaces from workspaces.json into DB
     db = database.SessionLocal()
     try:
-        existing_project = db.query(Project).first()
-        if not existing_project:
-            workspace_dir = os.path.abspath(os.getcwd())
-            default_proj = Project(
-                id="proj_default",
-                name="Default Workspace",
-                workspace_path=workspace_dir,
-                description="Default workspace directory for ChatGPT × Antigravity Bridge.",
-                instructions="Follow clean architecture, write modular and tested code, never delete working code.",
-            )
-            db.add(default_proj)
-            db.commit()
-            logger.info("Created default project workspace: %s", default_proj.id)
+        from app.services.workspace_service import workspace_service
+        workspace_service.sync_with_db(db)
+        logger.info(
+            "Synchronized %d authorized workspaces with database.",
+            len(workspace_service.list_authorized_workspaces(enabled_only=False)),
+        )
 
         # Seed default administrative API key if no keys exist
         existing_key = db.query(ApiKey).first()

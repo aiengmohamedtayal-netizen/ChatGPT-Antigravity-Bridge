@@ -3,7 +3,7 @@
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import List, Union
+from typing import List, Optional, Union
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -61,6 +61,22 @@ class Settings(BaseSettings):
 
     # Outbound OpenAI (Optional)
     OPENAI_API_KEY: str = ""
+
+    # Workspace Authorization & Multi-Root Management
+    WORKSPACES_CONFIG_FILE: str = "workspaces.json"
+    AUTHORIZED_WORKSPACES: Optional[str] = None  # Comma-separated paths or JSON string from env
+    RESTRICTED_SYSTEM_DIRECTORIES: List[str] = [
+        "c:\\windows",
+        "c:\\program files",
+        "c:\\program files (x86)",
+        "c:\\users\\default",
+        "c:\\users\\all users",
+        "/etc",
+        "/usr",
+        "/bin",
+        "/sbin",
+        "/root",
+    ]
 
     # MCP Server configuration
     MCP_SERVER_NAME: str = "antigravity-bridge"

@@ -1,0 +1,25 @@
+{
+  "authorized_workspaces": [
+    {
+      "id": "proj_tool",
+      "name": "ChatGPT Bridge (Tool)",
+      "path": "d:\\PROJECTS\\tool",
+      "enabled": true,
+      "description": "ChatGPT x Antigravity Bridge gateway and orchestration engine"
+    },
+    {
+      "id": "proj_training",
+      "name": "Training Workspace",
+      "path": "d:\\PROJECTS\\training",
+      "enabled": true,
+      "description": "Training projects and experimental scripts"
+    },
+    {
+      "id": "proj_smart_home",
+      "name": "Smart Home Project",
+      "path": "d:\\PROJECTS\\smart home project",
+      "enabled": true,
+      "description": "Smart Home Full-stack Next.js Application and agents"
+    }
+  ]
+}

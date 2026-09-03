@@ -41,8 +41,30 @@ class TaskOrchestrator:
         if not self._is_running:
             self._is_running = True
             self._queue = asyncio.PriorityQueue()
+            self._cleanup_zombie_tasks()
             self._worker_task = asyncio.create_task(self._process_queue_loop())
             logger.info("TaskOrchestrator worker started.")
+
+    def _cleanup_zombie_tasks(self):
+        """Reset any tasks left in 'running' state from previous process run."""
+        try:
+            db = database.SessionLocal()
+            try:
+                zombies = db.query(Task).filter(Task.status == TaskStatus.RUNNING).all()
+                for z in zombies:
+                    z.status = TaskStatus.FAILED
+                    z.completed_at = datetime.now(timezone.utc)
+                    z.error_info = {
+                        "code": "SERVER_RESTARTED",
+                        "message": "Task cancelled due to gateway server restart.",
+                    }
+                if zombies:
+                    db.commit()
+                    logger.info("Cleaned up %d zombie running tasks on startup.", len(zombies))
+            finally:
+                db.close()
+        except Exception as e:
+            logger.warning("Failed to clean up zombie tasks on startup: %s", e)
 
     async def stop_worker(self):
         """Gracefully shut down queue worker and cancel running jobs."""

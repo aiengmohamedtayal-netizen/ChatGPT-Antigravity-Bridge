@@ -57,6 +57,12 @@ class NotFoundError(BridgeException):
     title = "Resource Not Found"
 
 
+class BadRequestError(BridgeException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "BAD_REQUEST"
+    title = "Bad Request"
+
+
 class ConflictError(BridgeException):
     status_code = status.HTTP_409_CONFLICT
     code = "CONFLICT"

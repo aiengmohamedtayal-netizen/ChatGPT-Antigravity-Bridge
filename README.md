@@ -95,9 +95,11 @@ sequenceDiagram
 ## Key Features
 
 - **Dual Control Interfaces**: Exposes an OpenAPI 3.1 schema for ChatGPT Custom Actions and a native MCP server (`/mcp/sse`) conforming to the 2024-11-05 specification.
+- **Multi-Workspace Authorization**: Dynamically discover and manage multiple authorized project directories via `workspaces.json`. ChatGPT and Antigravity can switch between workspaces at runtime without restarting the Bridge.
+- **Dynamic Filesystem Tools**: 10 MCP tools (`list_workspaces`, `get_workspace`, `list_directory`, `read_file`, `write_file`, `create_directory`, `move_file`, `delete_file`, `search_files`, `get_file_tree`) provide direct filesystem access strictly bounded to authorized roots.
 - **Session Continuity**: Follow-up prompts reuse the existing Antigravity conversation session (`session_id`), allowing iterative refactoring without re-sending the whole codebase.
-- **Priority Task Queue**: Background asynchronous scheduler prioritizing `urgent` > `high` > `normal` > `low` tasks.
-- **Filesystem Boundary Guard**: Resolves canonical symlink-free paths to prevent directory traversal (`../`) attacks outside the registered workspace root.
+- **Priority Task Queue**: Background asynchronous scheduler prioritizing `urgent` > `high` > `normal` > `low` tasks. Zombie tasks from previous process runs are automatically cleaned on startup.
+- **Filesystem Boundary Guard**: Resolves canonical symlink-free paths using `os.path.realpath` to prevent directory traversal (`../`), symlink/junction escaping, cross-drive access, and unauthorized paths outside registered workspace roots. Windows path casing and separator normalization built-in.
 - **Pure Headless Operation**: Zero frontend bloat or dependencies. Runs strictly as a high-performance background daemon and MCP server controlled directly from ChatGPT or your terminal.
 - **Zero Port Forwarding**: Ships with an automated Cloudflare quick tunnel helper (`run_tunnel.py` / `START GATEWAY.bat`) establishing an end-to-end TLS 1.3 tunnel to `127.0.0.1:8000`.
 - **Security**: Constant-time verification of SHA-256 hashed API keys, Fernet AES credential encryption, RBAC scopes, and token-bucket rate limiting via SlowAPI.
@@ -110,15 +112,16 @@ sequenceDiagram
 ChatGPT-Antigravity-Bridge/
 |-- app/
 |   |-- api/
-|   |   |-- v1/                 # REST endpoints (tasks, projects, sessions, keys, audit)
+|   |   |-- v1/                 # REST endpoints (tasks, projects, sessions, keys, audit, workspaces)
 |   |   `-- websockets.py       # Real-time task execution log streaming
 |   |-- core/                   # Security, dependencies, rate limiting, error handlers
 |   |-- mcp/                    # MCP server implementation, tools, and JSON-RPC protocol
 |   |-- models/                 # SQLAlchemy data models (Task, Project, ApiKey, AuditLog)
 |   |-- orchestration/          # Priority queue worker, state machine, context manager
 |   |-- providers/              # Agent adapters (Antigravity Real, SDK, CLI, Simulated)
-|   |-- schemas/                # Pydantic v2 validation models
+|   |-- schemas/                # Pydantic v2 validation models (including workspace schemas)
 |   |-- security/               # Filesystem boundary guard and path canonicalization
+|   |-- services/               # Workspace authorization and filesystem operations
 |   |-- config.py               # Pydantic settings with dynamic home path detection
 |   |-- database.py             # SQLite engine setup (WAL mode enabled)
 |   `-- main.py                 # FastAPI application factory and lifespan manager
@@ -131,7 +134,7 @@ ChatGPT-Antigravity-Bridge/
 |   |-- gateway_manager.py      # Unified launcher with health checks and tunnel pairing
 |   |-- test_real_gateway.py    # Local integration verification against live AgentAPI
 |   `-- test_external_e2e.py    # End-to-end test verifying remote access through tunnel
-|-- tests/                      # Automated test suite (Pytest + AsyncIO)
+|-- tests/                      # Automated test suite (Pytest + AsyncIO, 36 tests)
 |-- .env.example                # Configuration template
 |-- .gitignore                  # Ignores secrets, databases, and local binaries
 |-- CONTRIBUTING.md             # Development guidelines and PR workflow
@@ -139,6 +142,7 @@ ChatGPT-Antigravity-Bridge/
 |-- requirements.txt            # Python dependencies
 |-- run.py                      # Local server entrypoint
 |-- run_tunnel.py               # Cloudflare quick tunnel launcher with auto-download
+|-- workspaces.json             # Authorized workspace roots configuration
 `-- START GATEWAY.bat           # Windows one-click launcher
 ```
 
@@ -215,6 +219,67 @@ This checks server health, starts the FastAPI gateway, launches the Cloudflare t
 
 ---
 
+## Multi-Workspace Configuration
+
+The Bridge supports multiple authorized workspace roots, configured in `workspaces.json` at the project root. ChatGPT and Antigravity can dynamically switch between workspaces without restarting the server.
+
+### workspaces.json
+
+```json
+{
+  "workspaces": [
+    {
+      "id": "proj_tool",
+      "name": "ChatGPT Bridge (Tool)",
+      "path": "d:\\PROJECTS\\tool",
+      "enabled": true,
+      "description": "The ChatGPT × Antigravity Bridge project itself."
+    },
+    {
+      "id": "proj_training",
+      "name": "Training Workspace",
+      "path": "d:\\PROJECTS\\training",
+      "enabled": true,
+      "description": "ML training pipelines and experiments."
+    },
+    {
+      "id": "proj_smart_home",
+      "name": "Smart Home Project",
+      "path": "d:\\PROJECTS\\smart home project",
+      "enabled": true,
+      "description": "IoT smart home automation platform."
+    }
+  ]
+}
+```
+
+### Adding a New Workspace
+
+1. Add an entry to `workspaces.json` with a unique `id`, the absolute `path`, and a `name`.
+2. Restart the Bridge server. The new workspace is automatically synced to the SQLite database and becomes available through MCP and REST API.
+3. Alternatively, use the REST API at runtime:
+   ```http
+   POST /api/v1/workspaces
+   Content-Type: application/json
+   X-API-Key: <your-api-key>
+
+   {
+     "path": "d:\\PROJECTS\\new-project",
+     "name": "My New Project",
+     "workspace_id": "proj_new"
+   }
+   ```
+
+### Security Rules
+
+- **Only explicitly authorized paths** in `workspaces.json` (or registered via API) are accessible.
+- **Bare drive roots** (`C:\`, `D:\`) and **system directories** (`C:\Windows`, `C:\Program Files`) are permanently blocked.
+- **Path traversal** (`../`), symlink/junction escaping, and cross-drive access outside workspace roots are rejected with: `"Access denied: this path is outside the authorized workspace roots."`
+- **Cross-workspace isolation**: When a `workspace_id` is specified, only paths within that specific workspace are permitted.
+- **Windows path normalization**: Forward/backward slashes, case insensitivity, and `os.path.realpath` canonicalization are handled automatically.
+
+---
+
 ## Agent Providers
 
 The bridge decouples task orchestration from the underlying agent execution engine via a pluggable provider interface:
@@ -267,6 +332,22 @@ Add the tunnel SSE URL to your desktop MCP settings:
 
 ## MCP Tools Reference
 
+### Dynamic Filesystem Tools (New)
+These tools provide direct, security-bounded filesystem access across all authorized workspaces:
+
+| Tool | Parameters | Description |
+|------|------------|-------------|
+| `list_workspaces` | `enabled_only` | Lists all authorized workspace roots with disk existence status |
+| `get_workspace` | `workspace_id` | Returns workspace metadata, instructions, and preview entries |
+| `list_directory` | `path`, `workspace_id`, `show_hidden` | Lists files and folders inside an authorized workspace |
+| `read_file` | `path`, `workspace_id`, `max_bytes`, `offset` | Reads file content with pagination support |
+| `write_file` | `path`, `content`, `workspace_id`, `overwrite` | Creates or updates files within authorized roots |
+| `create_directory` | `path`, `workspace_id` | Creates directories with `mkdir -p` behavior |
+| `move_file` | `source_path`, `target_path`, `workspace_id` | Moves or renames files/directories |
+| `delete_file` | `path`, `workspace_id`, `recursive`, `confirm` | Deletes files/directories (requires `confirm=true`) |
+| `search_files` | `query`, `workspace_id`, `search_type` | Searches by filename glob or content substring |
+| `get_file_tree` | `workspace_id`, `path`, `max_depth` | Returns a bounded directory tree (max depth 1-5) |
+
 ### ChatGPT Control Plane Tools
 These tools allow ChatGPT to inspect and drive the local environment:
 
@@ -305,12 +386,15 @@ Run the automated test suite:
 python -m pytest tests/ -v
 ```
 
-All 21 tests execute against an in-memory SQLite database using a simulated provider, completing in under 2 seconds:
+All 36 tests execute against an in-memory SQLite database using a simulated provider, completing in under 2 seconds:
 - API key hashing and Fernet AES encryption roundtrip
 - Bearer token authentication and RBAC scope enforcement
 - Priority queue scheduling and idempotency deduplication
 - Multi-turn session continuation context preservation
 - MCP JSON-RPC 2.0 handshake and tool execution
+- Multi-workspace authorization and dynamic filesystem operations
+- Canonical path security, traversal prevention, and cross-workspace isolation
+- REST API workspace file lifecycle (write, read, list, search, delete)
 - End-to-end ChatGPT action workflow simulation
 
 ---

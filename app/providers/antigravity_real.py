@@ -82,7 +82,15 @@ class AntigravityRealAgentProvider(BaseAgentProvider):
         stdout, stderr = await proc.communicate()
 
         if proc.returncode != 0:
-            err = stderr.decode("utf-8", errors="ignore")
+            out_err = stdout.decode("utf-8", errors="ignore").strip()
+            err_err = stderr.decode("utf-8", errors="ignore").strip()
+            err = err_err or out_err or "Unknown agentapi failure"
+            try:
+                parsed_err = json.loads(out_err)
+                if "error" in parsed_err:
+                    err = parsed_err["error"]
+            except Exception:
+                pass
             raise RuntimeError(f"agentapi new-conversation failed: {err}")
 
         out_str = stdout.decode("utf-8", errors="ignore")
@@ -138,7 +146,15 @@ class AntigravityRealAgentProvider(BaseAgentProvider):
         stdout, stderr = await proc.communicate()
 
         if proc.returncode != 0:
-            err = stderr.decode("utf-8", errors="ignore")
+            out_err = stdout.decode("utf-8", errors="ignore").strip()
+            err_err = stderr.decode("utf-8", errors="ignore").strip()
+            err = err_err or out_err or "Unknown agentapi dispatch failure"
+            try:
+                parsed_err = json.loads(out_err)
+                if "error" in parsed_err:
+                    err = parsed_err["error"]
+            except Exception:
+                pass
             yield AgentEvent(
                 event_type="error",
                 message=f"Agent command dispatch failed: {err}",
