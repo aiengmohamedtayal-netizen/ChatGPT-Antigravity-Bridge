@@ -46,8 +46,6 @@ flowchart TD
             AgentAPI["Antigravity AgentAPI / Language Server<br/>(agentapi.bat / Python SDK)"]
             Workspace["Authorized Workspace Root<br/>(Source Files, Git, Tests)"]
         end
-
-        Dashboard["Developer Dashboard & WebSocket<br/>(http://127.0.0.1:8000)"]
     end
 
     ChatGPT -->|"HTTPS REST / MCP SSE"| CF
@@ -58,7 +56,6 @@ flowchart TD
     Boundary --> AgentAPI
     AgentAPI --> Workspace
     Orchestrator <--> DB
-    Orchestrator -.->|"Live Logs & Telemetry"| Dashboard
 ```
 
 ---
@@ -101,7 +98,7 @@ sequenceDiagram
 - **Session Continuity**: Follow-up prompts reuse the existing Antigravity conversation session (`session_id`), allowing iterative refactoring without re-sending the whole codebase.
 - **Priority Task Queue**: Background asynchronous scheduler prioritizing `urgent` > `high` > `normal` > `low` tasks.
 - **Filesystem Boundary Guard**: Resolves canonical symlink-free paths to prevent directory traversal (`../`) attacks outside the registered workspace root.
-- **Developer Dashboard**: Built-in web UI at `/dashboard` with live WebSocket execution logs, project workspace management, and API key generation.
+- **Pure Headless Operation**: Zero frontend bloat or dependencies. Runs strictly as a high-performance background daemon and MCP server controlled directly from ChatGPT or your terminal.
 - **Zero Port Forwarding**: Ships with an automated Cloudflare quick tunnel helper (`run_tunnel.py` / `START GATEWAY.bat`) establishing an end-to-end TLS 1.3 tunnel to `127.0.0.1:8000`.
 - **Security**: Constant-time verification of SHA-256 hashed API keys, Fernet AES credential encryption, RBAC scopes, and token-bucket rate limiting via SlowAPI.
 
@@ -122,7 +119,6 @@ ChatGPT-Antigravity-Bridge/
 |   |-- providers/              # Agent adapters (Antigravity Real, SDK, CLI, Simulated)
 |   |-- schemas/                # Pydantic v2 validation models
 |   |-- security/               # Filesystem boundary guard and path canonicalization
-|   |-- static/                 # Developer dashboard and landing page assets
 |   |-- config.py               # Pydantic settings with dynamic home path detection
 |   |-- database.py             # SQLite engine setup (WAL mode enabled)
 |   `-- main.py                 # FastAPI application factory and lifespan manager
@@ -205,9 +201,9 @@ This checks server health, starts the FastAPI gateway, launches the Cloudflare t
    python run.py
    ```
    The server starts at `http://127.0.0.1:8000`:
-   - Developer Dashboard: `http://127.0.0.1:8000/dashboard`
    - Interactive OpenAPI Docs: `http://127.0.0.1:8000/docs`
    - ChatGPT Action Schema: `http://127.0.0.1:8000/api/v1/chatgpt/openapi.json`
+   - Remote MCP SSE Endpoint: `http://127.0.0.1:8000/mcp/sse`
 
 2. In a second terminal, start the secure public tunnel:
    ```bash
@@ -225,7 +221,7 @@ The bridge decouples task orchestration from the underlying agent execution engi
 
 | Provider | Mode | Description |
 |---|---|---|
-| `simulated` | Standalone / Testing | In-memory mock agent with zero external dependencies. Simulates real-time task progression, code generation, and logs. Used in automated tests and ideal for exploring the dashboard or API without Antigravity installed. |
+| `simulated` | Standalone / Testing | In-memory mock agent with zero external dependencies. Simulates real-time task progression, code generation, and logs. Used in automated tests and ideal for verifying the API without Antigravity installed. |
 | `antigravity_real` | Local Production | Dispatches prompts to the local Google Antigravity Language Server via `agentapi.bat`. Directly modifies files, executes terminal commands, and persists conversation context in the user's `brain` directory. |
 | `antigravity_sdk` | Native Python SDK | In-process Python integration using the Antigravity SDK when running inside an Antigravity-aware environment. |
 | `claude_code` / `gemini_cli` | Extension Adapters | CLI adapters for dispatching tasks to other local agent tools. |
@@ -250,7 +246,7 @@ DEFAULT_AGENT_PROVIDER=antigravity
 4. Configure Authentication:
    - **Authentication Type**: `API Key`
    - **Auth Type**: `Bearer`
-   - **API Key**: Enter the key from `.initial_api_key.txt` (or create one in `/dashboard`).
+   - **API Key**: Enter the key from `.initial_api_key.txt`.
 5. Copy the system prompt template from [`docs/CHATGPT_SETUP.md`](docs/CHATGPT_SETUP.md) into the GPT Instructions.
 
 ### Using ChatGPT Desktop (Remote MCP)
@@ -295,7 +291,7 @@ Tools used by Antigravity to report back to the bridge:
 | Tool | Parameters | Description |
 |------|------------|-------------|
 | `bridge_get_project_context` | `project_id` | Fetches workspace context and guidelines |
-| `bridge_report_task_progress` | `task_id`, `message`, `level` | Streams execution progress to dashboard |
+| `bridge_report_task_progress` | `task_id`, `message`, `level` | Streams real-time execution progress and logs |
 | `bridge_store_task_artifact` | `task_id`, `filename`, `content` | Persists generated diffs and files |
 | `bridge_query_task_history` | `project_id`, `limit` | Queries past architectural decisions |
 

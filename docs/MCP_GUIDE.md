@@ -51,7 +51,7 @@ Returns deep workspace context including directory trees, guidelines, and active
 - **Parameters**: `project_id` (string)
 
 ### `bridge_report_task_progress`
-Allows Antigravity to emit real-time logs, thoughts, and tool call progress directly back to the Bridge dashboard and ChatGPT.
+Allows Antigravity to emit real-time logs, thoughts, and tool call progress directly back to the Bridge and ChatGPT.
 - **Parameters**: `task_id` (string), `message` (string), `level` (string), `tool_name` (string, optional)
 
 ### `bridge_store_task_artifact`

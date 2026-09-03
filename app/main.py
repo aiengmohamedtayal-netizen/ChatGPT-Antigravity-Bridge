@@ -8,8 +8,7 @@ import time
 import uuid
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -175,31 +174,15 @@ async def oauth_discovery_fallback():
     return JSONResponse(status_code=200, content={"authorization_servers": []})
 
 
-# Static Assets, Developer Dashboard & 3D Landing Page
-static_dir = Path(__file__).parent / "static"
-if static_dir.exists():
-    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
-
-    @app.get("/", include_in_schema=False)
-    async def serve_landing():
-        landing_file = static_dir / "landing.html"
-        if landing_file.exists():
-            return FileResponse(landing_file)
-        index_file = static_dir / "index.html"
-        if index_file.exists():
-            return FileResponse(index_file)
-        return JSONResponse({"status": "healthy", "message": "Service online."})
-
-    @app.get("/landing", include_in_schema=False)
-    async def serve_landing_alias():
-        landing_file = static_dir / "landing.html"
-        if landing_file.exists():
-            return FileResponse(landing_file)
-        return FileResponse(static_dir / "index.html")
-
-    @app.get("/dashboard", include_in_schema=False)
-    async def serve_dashboard():
-        index_file = static_dir / "index.html"
-        if index_file.exists():
-            return FileResponse(index_file)
-        return JSONResponse({"status": "healthy", "message": "Dashboard under construction."})
+# Root Headless Discovery Endpoint
+@app.get("/", tags=["Root"])
+async def root():
+    return {
+        "status": "healthy",
+        "app": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "mode": "headless",
+        "chatgpt_schema": "/api/v1/chatgpt/openapi.json",
+        "mcp_endpoint": settings.MCP_SSE_ENDPOINT,
+        "docs_url": "/docs",
+    }

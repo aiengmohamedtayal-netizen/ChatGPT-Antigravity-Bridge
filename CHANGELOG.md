@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Priority Queue Worker**: Asynchronous background queue engine with prioritization (`urgent`, `high`, `normal`, `low`).
 - **Filesystem Boundary Guard**: Canonical symlink-free path validation blocking directory traversal attacks (`../`) outside the authorized workspace.
 - **Pluggable Agent Providers**: Pluggable provider architecture with `antigravity_real` (local language server via `agentapi.bat`), `antigravity_sdk`, and `simulated` (in-memory mock for standalone testing and CI).
-- **Developer Web Dashboard**: Built-in interactive dashboard (`/dashboard`) with real-time WebSocket logs and API key management.
+- **Pure Headless Architecture**: Streamlined headless service with root metadata discovery, zero frontend overhead, and direct OpenAPI/MCP orchestration.
 - **Automated Cloudflare Quick Tunnel Helper**: Cross-platform launcher with automatic official binary detection/downloading for zero-port-forwarding ingress.
 - **Security & Authentication**: Bearer API key authentication with SHA-256 constant-time hashing, Fernet AES credential encryption, and SlowAPI rate limiting.
 - **Automated Pytest Suite**: 21 unit and integration tests covering security, task queue, MCP protocol, and end-to-end ChatGPT workflows.

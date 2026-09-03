@@ -50,7 +50,7 @@ Use this method to let ChatGPT orchestrate Antigravity through standard OpenAPI 
 1. In the **Authentication** section, click the settings gear:
    - **Authentication Type**: `API Key`
    - **Auth Type**: `Bearer`
-   - **API Key**: Enter the key generated at startup (found in `.initial_api_key.txt` or created in the web dashboard).
+   - **API Key**: Enter the key generated at startup (found in `.initial_api_key.txt`).
 2. Save the action configuration.
 
 ### Step 4: System Instructions
