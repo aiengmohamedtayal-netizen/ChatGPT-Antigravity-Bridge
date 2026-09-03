@@ -1,4 +1,4 @@
-﻿# ChatGPT x Antigravity Bridge
+# ChatGPT x Antigravity Bridge
 
 [![CI](https://github.com/aiengmohamedtayal-netizen/ChatGPT-Antigravity-Bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/aiengmohamedtayal-netizen/ChatGPT-Antigravity-Bridge/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
@@ -215,7 +215,27 @@ This checks server health, starts the FastAPI gateway, launches the Cloudflare t
    ```
    *(If `cloudflared` is not found on your system PATH or in `bin/`, the script automatically downloads the official Cloudflare binary for your operating system).*
 
+> **Note on Quick Tunnels**: Cloudflare Quick Tunnels (`*.trycloudflare.com`) generate temporary, ephemeral URLs intended for development and local testing. Each restart assigns a new random URL. For a persistent setup, use a named Cloudflare Tunnel (`cloudflared tunnel run <name>`) or a custom reverse proxy domain.
+
 ---
+
+## Agent Providers
+
+The bridge decouples task orchestration from the underlying agent execution engine via a pluggable provider interface:
+
+| Provider | Mode | Description |
+|---|---|---|
+| `simulated` | Standalone / Testing | In-memory mock agent with zero external dependencies. Simulates real-time task progression, code generation, and logs. Used in automated tests and ideal for exploring the dashboard or API without Antigravity installed. |
+| `antigravity_real` | Local Production | Dispatches prompts to the local Google Antigravity Language Server via `agentapi.bat`. Directly modifies files, executes terminal commands, and persists conversation context in the user's `brain` directory. |
+| `antigravity_sdk` | Native Python SDK | In-process Python integration using the Antigravity SDK when running inside an Antigravity-aware environment. |
+| `claude_code` / `gemini_cli` | Extension Adapters | CLI adapters for dispatching tasks to other local agent tools. |
+
+Switch providers in `.env`:
+```ini
+DEFAULT_AGENT_PROVIDER=antigravity
+# Or for standalone testing:
+# DEFAULT_AGENT_PROVIDER=simulated
+```
 
 ## Connecting ChatGPT
 
@@ -304,7 +324,7 @@ All 21 tests execute against an in-memory SQLite database using a simulated prov
 - **No Inbound Open Ports**: The server binds to `127.0.0.1`. Remote traffic reaches it only via an outbound Cloudflare tunnel.
 - **Filesystem Isolation**: File inspection and execution are restricted to paths verified by `WorkspaceBoundaryGuard`. Escapes via `..` or alternate drive letters are blocked.
 - **Hashed Secrets**: API keys are generated using cryptographically secure random tokens (`secrets.token_urlsafe`), hashed with SHA-256, and verified using `secrets.compare_digest` to prevent timing attacks.
-- **Encrypted Credentials**: Provider credentials stored in SQLite are encrypted with AES-GCM (Fernet) derived from `BRIDGE_SECRET_KEY`.
+- **Encrypted Credentials**: Provider credentials stored in SQLite are encrypted with Fernet (AES-128-CBC with HMAC-SHA256 authentication) derived from `BRIDGE_SECRET_KEY`.
 
 See [`docs/SECURITY.md`](docs/SECURITY.md) for full security documentation.
 

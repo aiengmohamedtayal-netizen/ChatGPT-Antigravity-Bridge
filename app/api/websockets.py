@@ -4,7 +4,7 @@ import asyncio
 import json
 import logging
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from app.database import SessionLocal
+from app import database
 from app.models.task import Task, ExecutionLog
 from app.orchestration.logger import execution_logger
 
@@ -19,7 +19,7 @@ async def task_websocket_endpoint(websocket: WebSocket, task_id: str):
     queue = execution_logger.subscribe(task_id)
 
     # First send historical logs
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         task = db.query(Task).filter(Task.id == task_id).first()
         if not task:

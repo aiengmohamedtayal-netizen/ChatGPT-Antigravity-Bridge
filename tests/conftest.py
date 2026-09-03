@@ -1,6 +1,10 @@
 """Pytest fixtures and test database setup."""
 
 import os
+
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["ENVIRONMENT"] = "testing"
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

@@ -14,7 +14,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from app.config import get_settings
-from app.database import init_db, SessionLocal
+from app import database
 from app.models.project import Project
 from app.models.api_key import ApiKey, ApiScope
 from app.core.security import generate_api_key
@@ -37,10 +37,10 @@ logger = logging.getLogger("antigravity.bridge")
 async def lifespan(app: FastAPI):
     """Application lifespan manager: database init, seed defaults, queue worker."""
     logger.info("Initializing ChatGPT × Antigravity Bridge...")
-    init_db()
+    database.init_db()
 
     # Seed default project if empty
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         existing_project = db.query(Project).first()
         if not existing_project:

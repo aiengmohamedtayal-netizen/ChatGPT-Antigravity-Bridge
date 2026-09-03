@@ -15,7 +15,7 @@ The **ChatGPT × Antigravity Bridge** is designed as a developer infrastructure 
 
 ## 2. Secrets Encryption at Rest
 
-- Sensitive connection credentials and provider tokens are encrypted using **Fernet (AES-GCM)** symmetric encryption (`app/core/security.py`).
+- Sensitive connection credentials and provider tokens are encrypted using **Fernet** authenticated symmetric encryption (`app/core/security.py`), utilizing 128-bit AES in CBC mode with PKCS7 padding and HMAC-SHA256 for integrity verification.
 - The encryption key is deterministically derived from `BRIDGE_SECRET_KEY` using SHA-256 base64.
 
 ---

@@ -1,4 +1,4 @@
-﻿# ChatGPT Setup Guide
+# ChatGPT Setup Guide
 
 This guide walks through connecting ChatGPT to your local Antigravity Bridge instance.
 

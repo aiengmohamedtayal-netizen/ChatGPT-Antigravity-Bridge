@@ -1,4 +1,4 @@
-﻿# Contributing to ChatGPT x Antigravity Bridge
+# Contributing to ChatGPT x Antigravity Bridge
 
 Thank you for your interest in contributing to the project. This guide outlines how to set up your local development environment, run tests, and submit contributions.
 

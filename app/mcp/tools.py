@@ -5,7 +5,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 from sqlalchemy.orm import Session
-from app.database import SessionLocal
+from app import database
 from app.models.project import Project
 from app.models.task import Task, ExecutionLog, TaskStatus, TaskPriority
 from app.mcp.protocol import McpTool, McpToolInputSchema, McpToolResult, McpContentItem
@@ -211,7 +211,7 @@ async def execute_mcp_tool(name: str, arguments: Dict[str, Any], db: Optional[Se
     """Dispatch and execute an MCP tool with security validation."""
     should_close = False
     if db is None:
-        db = SessionLocal()
+        db = database.SessionLocal()
         should_close = True
 
     try:
