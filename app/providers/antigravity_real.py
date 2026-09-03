@@ -81,6 +81,7 @@ class AntigravityRealAgentProvider(BaseAgentProvider):
         cmd = [self.cli_path, "new-conversation", f"--title={title}", init_prompt]
         proc = await asyncio.create_subprocess_exec(
             *cmd,
+            cwd=workspace_path,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -145,6 +146,7 @@ class AntigravityRealAgentProvider(BaseAgentProvider):
         cmd = [self.cli_path, "send-message", session_id, prompt]
         proc = await asyncio.create_subprocess_exec(
             *cmd,
+            cwd=workspace_path,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -177,80 +179,147 @@ class AntigravityRealAgentProvider(BaseAgentProvider):
 
         # Wait and observe output steps in brain directory
         session_brain = os.path.join(self.brain_dir, session_id, ".system_generated")
-        steps_dir = os.path.join(session_brain, "steps")
+        transcript_file = os.path.join(session_brain, "logs", "transcript.jsonl")
 
-        max_wait_seconds = 15
-        elapsed = 0.0
+        HARD_TIMEOUT = 60.0
+        IDLE_TIMEOUT = 15.0
+        start_time = time.monotonic()
+        last_activity_time = time.monotonic()
+        last_line_count = 0
         final_output_text = ""
-        observed_files = []
+        completion_detected = False
+        failure_detected = False
+        failure_reason = ""
+        has_executed_tools = False
 
-        while elapsed < max_wait_seconds:
+        while True:
             if task_id in self._cancelled_tasks:
                 yield AgentEvent(event_type="cancelled", message="Task cancelled by user.", level="warning")
                 return
 
-            # Check for output.txt in newest step directories
-            if os.path.exists(steps_dir):
+            now = time.monotonic()
+            total_elapsed = now - start_time
+            idle_elapsed = now - last_activity_time
+
+            # Tail the transcript file
+            if os.path.exists(transcript_file):
                 try:
-                    step_subdirs = sorted(
-                        [d for d in os.listdir(steps_dir) if os.path.isdir(os.path.join(steps_dir, d))],
-                        key=lambda x: int(x) if x.isdigit() else 0,
-                    )
-                    for s in step_subdirs:
-                        step_out_file = os.path.join(steps_dir, s, "output.txt")
-                        if os.path.exists(step_out_file):
+                    with open(transcript_file, "r", encoding="utf-8", errors="ignore") as fp:
+                        lines = fp.readlines()
+                    
+                    if len(lines) > last_line_count:
+                        new_lines = lines[last_line_count:]
+                        last_line_count = len(lines)
+                        last_activity_time = now
+
+                        for line in new_lines:
+                            line = line.strip()
+                            if not line:
+                                continue
                             try:
-                                with open(step_out_file, "r", encoding="utf-8", errors="ignore") as fp:
-                                    content = fp.read().strip()
-                                    if content and content != final_output_text:
-                                        final_output_text = content
+                                data = json.loads(line)
+                                step_idx = data.get("step_index", 0)
+                                source = data.get("source", "")
+                                msg_type = data.get("type", "")
+                                status = data.get("status", "")
+                                content = data.get("content", "")
+                                tool_calls = data.get("tool_calls") or []
+
+                                if status == "ERROR":
+                                    failure_detected = True
+                                    failure_reason = content or f"Step {step_idx} failed with error status"
+
+                                if tool_calls:
+                                    has_executed_tools = True
+                                    for tc in tool_calls:
+                                        tname = tc.get("name", "tool")
+                                        targs = tc.get("args") or {}
+                                        yield AgentEvent(
+                                            event_type="tool_call",
+                                            message=f"Agent executing tool: {tname}",
+                                            level="info",
+                                            tool_name=tname,
+                                            tool_input=targs,
+                                            step_index=step_idx,
+                                        )
+
+                                if content:
+                                    if msg_type == "GENERIC":
                                         yield AgentEvent(
                                             event_type="tool_result",
-                                            message=f"[Step {s}] {content[:150]}",
+                                            message=f"[Step {step_idx}] {content[:200]}",
                                             level="info",
-                                            step_index=int(s) if s.isdigit() else 2,
+                                            step_index=step_idx,
+                                        )
+                                    elif source == "MODEL" and msg_type == "PLANNER_RESPONSE" and not tool_calls:
+                                        # Positive completion evidence: Model completed its response without requesting more tools
+                                        final_output_text = content
+                                        completion_detected = True
+                                        yield AgentEvent(
+                                            event_type="token",
+                                            message=content,
+                                            level="info",
+                                            step_index=step_idx,
                                         )
                             except Exception:
                                 pass
                 except Exception:
                     pass
 
-            # Check messages directory for completed response
-            msgs_dir = os.path.join(session_brain, "messages")
-            if os.path.exists(msgs_dir):
-                for f in os.listdir(msgs_dir):
-                    if f.endswith(".json") and f != "read.json":
-                        try:
-                            with open(os.path.join(msgs_dir, f), "r", encoding="utf-8", errors="ignore") as fp:
-                                msg_data = json.load(fp)
-                                content = msg_data.get("content") or msg_data.get("message")
-                                if content and not final_output_text:
-                                    final_output_text = str(content)
-                        except Exception:
-                            pass
+            # Check terminal states
+            if failure_detected:
+                yield AgentEvent(
+                    event_type="error",
+                    message=f"Agent execution failed: {failure_reason}",
+                    level="error",
+                    step_index=99,
+                )
+                return
 
-            if final_output_text:
-                break
+            if completion_detected and final_output_text:
+                yield AgentEvent(
+                    event_type="completed",
+                    message="Antigravity Agent completed task execution.",
+                    level="info",
+                    step_index=11,
+                )
+                return
+
+            # Check idle timeout
+            if idle_elapsed >= IDLE_TIMEOUT:
+                if completion_detected or final_output_text or has_executed_tools:
+                    # Positive evidence found
+                    out_msg = final_output_text or f"Agent completed execution in session {session_id}."
+                    yield AgentEvent(event_type="token", message=out_msg, level="info", step_index=10)
+                    yield AgentEvent(event_type="completed", message="Antigravity Agent completed task execution.", level="info", step_index=11)
+                    return
+                else:
+                    # Idle with NO positive completion evidence
+                    yield AgentEvent(
+                        event_type="error",
+                        message=f"Agent became idle after {idle_elapsed:.1f}s without producing completion evidence.",
+                        level="error",
+                        step_index=99,
+                    )
+                    return
+
+            # Check hard timeout
+            if total_elapsed >= HARD_TIMEOUT:
+                if completion_detected or final_output_text or has_executed_tools:
+                    out_msg = final_output_text or f"Agent finished execution before timeout."
+                    yield AgentEvent(event_type="token", message=out_msg, level="info", step_index=10)
+                    yield AgentEvent(event_type="completed", message="Antigravity Agent execution completed.", level="info", step_index=11)
+                    return
+                else:
+                    yield AgentEvent(
+                        event_type="error",
+                        message=f"Agent execution reached hard timeout ({HARD_TIMEOUT}s) with no completion evidence.",
+                        level="error",
+                        step_index=99,
+                    )
+                    return
 
             await asyncio.sleep(0.5)
-            elapsed += 0.5
-
-        if not final_output_text:
-            final_output_text = f"Agent completed execution in session {session_id}."
-
-        yield AgentEvent(
-            event_type="token",
-            message=final_output_text,
-            level="info",
-            step_index=10,
-        )
-
-        yield AgentEvent(
-            event_type="completed",
-            message="Antigravity Agent execution completed successfully.",
-            level="info",
-            step_index=11,
-        )
 
     async def cancel_task(self, task_id: str, session_id: Optional[str] = None) -> bool:
         self._cancelled_tasks.add(task_id)

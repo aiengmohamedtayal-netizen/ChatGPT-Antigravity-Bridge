@@ -31,6 +31,38 @@
       "enabled": true,
       "description": "Auto-resolved sub-workspace of Training Workspace",
       "instructions": ""
+    },
+    {
+      "id": "proj_training_healing_test_235338",
+      "name": "Training Workspace (healing_test_235338)",
+      "path": "D:\\PROJECTS\\training\\healing_test_235338",
+      "enabled": true,
+      "description": "Auto-resolved sub-workspace of Training Workspace",
+      "instructions": ""
+    },
+    {
+      "id": "proj_training_healing_test_000927",
+      "name": "Training Workspace (healing_test_000927)",
+      "path": "D:\\PROJECTS\\training\\healing_test_000927",
+      "enabled": true,
+      "description": "Auto-resolved sub-workspace of Training Workspace",
+      "instructions": ""
+    },
+    {
+      "id": "proj_training_healing_test_001504",
+      "name": "Training Workspace (healing_test_001504)",
+      "path": "D:\\PROJECTS\\training\\healing_test_001504",
+      "enabled": true,
+      "description": "Auto-resolved sub-workspace of Training Workspace",
+      "instructions": ""
+    },
+    {
+      "id": "proj_training_e2e_test_002426",
+      "name": "Training Workspace (e2e_test_002426)",
+      "path": "D:\\PROJECTS\\training\\e2e_test_002426",
+      "enabled": true,
+      "description": "Auto-resolved sub-workspace of Training Workspace",
+      "instructions": ""
     }
   ]
 }

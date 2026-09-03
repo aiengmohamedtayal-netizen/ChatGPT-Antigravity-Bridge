@@ -98,3 +98,10 @@ def test_cross_workspace_containment_failure():
         with pytest.raises(AuthorizationError) as exc_info:
             boundary_guard.validate_path(ws_b.path, workspace_id_or_root=ws_a.id)
         assert boundary_guard.ERROR_ACCESS_DENIED in str(exc_info.value.detail)
+
+def test_junction_escape_rejection():
+    """Verify that a directory junction pointing outside the workspace is rejected."""
+    junction_path = r"D:\PROJECTS\training\test_junction\System32"
+    with pytest.raises(AuthorizationError) as exc_info:
+        boundary_guard.validate_path(junction_path, workspace_id_or_root=r"D:\PROJECTS\training")
+    assert boundary_guard.ERROR_ACCESS_DENIED in str(exc_info.value.detail)

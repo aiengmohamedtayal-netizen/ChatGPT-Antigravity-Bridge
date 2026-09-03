@@ -170,6 +170,7 @@ class TaskOrchestrator:
             full_response_text = []
             files_modified = []
             artifacts = []
+            execution_error = None
 
             async for event in provider.execute_task(
                 task_id=task.id,
@@ -190,7 +191,9 @@ class TaskOrchestrator:
                     step_index=event.step_index,
                 )
 
-                if event.event_type == "token":
+                if event.event_type == "error":
+                    execution_error = event.message
+                elif event.event_type == "token":
                     full_response_text.append(event.message)
                 elif event.event_type == "tool_call" and event.tool_name == "write_to_file":
                     target = (event.tool_input or {}).get("target_file") or (event.tool_input or {}).get("target")
@@ -204,6 +207,19 @@ class TaskOrchestrator:
                     task_id=task.id,
                     message="Task execution was cancelled.",
                     level="warning",
+                )
+                return
+
+            if execution_error:
+                task.status = TaskStatus.FAILED
+                task.completed_at = datetime.now(timezone.utc)
+                task.error_info = {"code": "EXECUTION_ERROR", "message": execution_error}
+                db.commit()
+                await execution_logger.log_and_broadcast(
+                    task_id=task.id,
+                    message=f"Task failed during execution: {execution_error}",
+                    level="error",
+                    step_index=99,
                 )
                 return
 
@@ -228,6 +244,7 @@ class TaskOrchestrator:
             if not summary:
                 summary = "Task executed successfully by Antigravity."
 
+            task_succeeded = True
             if verification_result["status"] == "failed":
                 # Check retry limit (max 2 retries)
                 retry_count = task.metadata_json.get("retry_count", 0) if task.metadata_json else 0
@@ -257,6 +274,7 @@ class TaskOrchestrator:
                     final_text += f"\n\nVerification Failed. Enqueued auto-healing task: {child_task.id}"
                     await self.enqueue_task(child_task.id, priority=child_task.priority)
                 else:
+                    task_succeeded = False
                     final_text += f"\n\nVerification Failed after {retry_count} retries:\n{verification_result['output']}"
                     await execution_logger.log_and_broadcast(
                         task_id=task.id,
@@ -272,7 +290,7 @@ class TaskOrchestrator:
                     step_index=95,
                 )
 
-            task.status = TaskStatus.COMPLETED
+            task.status = TaskStatus.COMPLETED if task_succeeded else TaskStatus.FAILED
             task.completed_at = datetime.now(timezone.utc)
             task.antigravity_response = {
                 "summary": summary,
