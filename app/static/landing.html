@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChatGPT × Antigravity Bridge ⚡ | Autonomous Agent Control Plane</title>
+  <meta name="description" content="Production-grade developer control plane connecting ChatGPT as System Architect with Google Antigravity as Autonomous Implementation Agent via Model Context Protocol (MCP) and OpenAPI 3.1.">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Landing Stylesheet -->
+  <link rel="stylesheet" href="/static/landing.css">
+</head>
+<body>
+
+  <!-- Ambient Cybernetic Glow & Grid -->
+  <div class="ambient-bg">
+    <div class="ambient-grid"></div>
+    <div class="ambient-glow-1"></div>
+    <div class="ambient-glow-2"></div>
+    <div class="ambient-glow-3"></div>
+  </div>
+
+  <div class="page-container">
+    <!-- Navigation Bar -->
+    <header class="navbar">
+      <div class="nav-inner">
+        <a href="/" class="brand">
+          <div class="brand-icon">⚡</div>
+          <div class="brand-text">
+            <div class="brand-title">
+              <span>ChatGPT × Antigravity</span>
+              <span class="brand-version">v1.0</span>
+            </div>
+            <div class="brand-sub">Neural Bridge Control Plane</div>
+          </div>
+        </a>
+
+        <ul class="nav-links">
+          <li><a href="#visualizer" class="nav-link">3D Bridge</a></li>
+          <li><a href="#workflow" class="nav-link">Workflow Simulator</a></li>
+          <li><a href="#features" class="nav-link">Architecture</a></li>
+          <li><a href="#tools" class="nav-link">Control Tools</a></li>
+          <li><a href="#quickstart" class="nav-link">Setup Guide</a></li>
+          <li><a href="#comparison" class="nav-link">Comparison</a></li>
+          <li><a href="#faq" class="nav-link">FAQ</a></li>
+        </ul>
+
+        <div class="nav-actions">
+          <div class="status-badge" id="status-pill" title="Real-time Bridge Gateway Status">
+            <span class="status-dot"></span>
+            <span>Gateway Online</span>
+          </div>
+
+          <button class="theme-toggle-btn" id="theme-toggle" title="Toggle Theme" aria-label="Toggle Theme">☀️</button>
+
+          <a href="/docs" target="_blank" class="btn btn-secondary btn-sm" title="Interactive Swagger Documentation">
+            <span>API Docs</span>
+            <span style="font-size: 11px;">↗</span>
+          </a>
+
+          <a href="/dashboard" class="btn btn-primary btn-glow btn-sm">
+            <span>Launch Console</span>
+            <span>→</span>
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section" id="visualizer">
+      <div class="container">
+        <div class="hero-grid">
+          <div class="hero-content">
+            <div class="hero-tag">
+              <span>⚡</span>
+              <span>Autonomous Agent Control Plane & MCP Gateway</span>
+            </div>
+
+            <h1 class="hero-title">
+              The Neural Bridge Between<br>
+              <span class="gradient-text-chatgpt">ChatGPT</span> × 
+              <span class="gradient-text-antigravity">Antigravity</span>
+            </h1>
+
+            <p class="hero-subtitle">
+              Orchestrate your local Google Antigravity agent from any ChatGPT client (Web, iOS, Android, Desktop) via OpenAPI 3.1 Custom Actions and native Model Context Protocol (MCP 2.0). 
+              <strong>ChatGPT architects. Antigravity executes.</strong>
+            </p>
+
+            <div class="hero-actions">
+              <a href="/dashboard" class="btn btn-primary btn-glow">
+                <span>Open Command Center</span>
+                <span style="font-size: 16px;">→</span>
+              </a>
+
+              <button class="btn btn-secondary" id="btn-ping-live">
+                <span>⚡ Test Live Ping</span>
+              </button>
+
+              <a href="/api/v1/chatgpt/openapi.json" target="_blank" class="btn btn-ghost">
+                <span>View OpenAPI 3.1 Spec</span>
+                <span>↗</span>
+              </a>
+            </div>
+
+            <div class="hero-specs">
+              <div class="spec-item">
+                <div class="spec-value" id="hero-ping-ms">1.2<span class="spec-unit">ms</span></div>
+                <div class="spec-label">Gateway Roundtrip</div>
+              </div>
+              <div class="spec-item">
+                <div class="spec-value">12<span class="spec-unit">tools</span></div>
+                <div class="spec-label">ChatGPT Control Set</div>
+              </div>
+              <div class="spec-item">
+                <div class="spec-value">100<span class="spec-unit">%</span></div>
+                <div class="spec-label">Session Continuity</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3D Canvas Stage -->
+          <div class="hero-stage-container">
+            <div class="canvas-3d-wrapper">
+              <canvas id="canvas-3d"></canvas>
+
+              <!-- 3D HUD Overlay -->
+              <div class="stage-hud">
+                <div class="hud-top">
+                  <div class="hud-pill live-ping">
+                    <span class="dot"></span>
+                    <span>ACTIVE PROVIDER: <strong id="hero-provider-name">Antigravity Native SDK</strong></span>
+                  </div>
+
+                  <div class="hud-controls">
+                    <button class="hud-btn" id="btn-toggle-wireframe" title="Toggle 3D Wireframe mode">Wireframe</button>
+                  </div>
+                </div>
+
+                <div class="hud-pulse-action">
+                  <button class="btn btn-primary btn-sm" id="btn-pulse-packet">
+                    <span>⚡ Dispatch Prompt Pulse</span>
+                  </button>
+                </div>
+
+                <div class="hud-bottom">
+                  <div class="hud-node-label">
+                    <div class="hud-node-title">ChatGPT Core</div>
+                    <div class="hud-node-sub">Lead Architect & Decomposition</div>
+                  </div>
+
+                  <div class="hud-node-label right">
+                    <div class="hud-node-title">Google Antigravity</div>
+                    <div class="hud-node-sub">Autonomous Execution Agent</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Architecture & Workflow Simulator -->
+    <section class="section" id="workflow">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-badge">Live Interactive Simulation</div>
+          <h2 class="section-title">The 5-Step Collaborative Loop</h2>
+          <p class="section-desc">
+            Experience how ChatGPT and Antigravity collaborate in real-time. Select any development scenario below to preview OpenAPI payloads, security validations, and live terminal execution.
+          </p>
+        </div>
+
+        <div class="simulator-box">
+          <!-- Step Selector Navigation -->
+          <div class="sim-steps-nav">
+            <button class="sim-step-btn active" data-step="1">
+              <span class="sim-step-number">STEP 01</span>
+              <span class="sim-step-name">Discovery</span>
+            </button>
+            <button class="sim-step-btn" data-step="2">
+              <span class="sim-step-number">STEP 02</span>
+              <span class="sim-step-name">Context Hydration</span>
+            </button>
+            <button class="sim-step-btn" data-step="3">
+              <span class="sim-step-number">STEP 03</span>
+              <span class="sim-step-name">Task Dispatch</span>
+            </button>
+            <button class="sim-step-btn" data-step="4">
+              <span class="sim-step-number">STEP 04</span>
+              <span class="sim-step-name">Live Telemetry</span>
+            </button>
+            <button class="sim-step-btn" data-step="5">
+              <span class="sim-step-number">STEP 05</span>
+              <span class="sim-step-name">Multi-Turn Session</span>
+            </button>
+          </div>
+
+          <!-- Simulator Body -->
+          <div class="sim-body">
+            <!-- Left: ChatGPT Orchestrator & Request -->
+            <div class="sim-panel left">
+              <div class="sim-panel-header">
+                <div class="sim-panel-title">
+                  <span>🤖</span>
+                  <span>ChatGPT Action Payload</span>
+                </div>
+                <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-emerald);">
+                  Protocol: OpenAPI 3.1
+                </div>
+              </div>
+
+              <div class="sim-presets-bar">
+                <button class="preset-chip active" data-preset="oauth">OAuth2 & JWT</button>
+                <button class="preset-chip" data-preset="sqlite">SQLite WAL Refactor</button>
+                <button class="preset-chip" data-preset="sse">SSE Telemetry</button>
+                <button class="preset-chip" data-preset="continuation">Continuation</button>
+              </div>
+
+              <div class="code-window">
+                <div class="code-window-bar">
+                  <div class="window-dots">
+                    <span class="dot-red"></span>
+                    <span class="dot-yellow"></span>
+                    <span class="dot-green"></span>
+                  </div>
+                  <div class="window-title">
+                    <span id="sim-req-method" style="color: var(--accent-emerald); font-weight: bold;">POST</span>
+                    <span id="sim-req-path">/api/v1/tasks</span>
+                  </div>
+                  <button class="copy-btn" data-copy-target="sim-req-json">Copy</button>
+                </div>
+                <pre class="code-content" id="sim-req-json"></pre>
+              </div>
+            </div>
+
+            <!-- Right: Antigravity Execution Console & Diff -->
+            <div class="sim-panel right">
+              <div class="sim-panel-header">
+                <div class="sim-panel-title">
+                  <span>⚡</span>
+                  <span>Antigravity Agent Real-Time Execution</span>
+                </div>
+                <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-cyan);">
+                  Workspace: d:\PROJECTS\tool
+                </div>
+              </div>
+
+              <div class="code-window" style="min-height: 240px;">
+                <div class="code-window-bar">
+                  <div class="window-dots">
+                    <span class="dot-red"></span>
+                    <span class="dot-yellow"></span>
+                    <span class="dot-green"></span>
+                  </div>
+                  <div class="window-title">stdout / stderr terminal stream</div>
+                </div>
+                <div class="code-content" id="sim-terminal-logs"></div>
+              </div>
+
+              <!-- Diff Viewer Box -->
+              <div class="diff-container">
+                <div style="color: var(--text-muted); font-size: 0.7rem; margin-bottom: 0.4rem;">
+                  MODIFIED CODE DIFF
+                </div>
+                <div id="sim-diff-lines"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Architecture & Bento Grid Features -->
+    <section class="section" id="features">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-badge">Enterprise Control Plane</div>
+          <h2 class="section-title">Engineered for Production AI Workflows</h2>
+          <p class="section-desc">
+            Bridging large language model orchestration with local, safety-isolated execution on bare metal.
+          </p>
+        </div>
+
+        <div class="bento-grid">
+          <!-- Card 1 -->
+          <div class="bento-card wide-2">
+            <div class="bento-icon-box">⚡</div>
+            <h3 class="bento-title">Zero-Latency Local Orchestration</h3>
+            <p class="bento-desc">
+              ChatGPT communicates directly with Google Antigravity's local AgentAPI server. Fast priority queue management processes tasks instantaneously with microsecond routing and state persistence in SQLite WAL mode.
+            </p>
+            <div class="bento-visual-code">
+              <code>PriorityQueue: [Urgent ➔ High ➔ Normal ➔ Low] | Concurrency: Multi-worker Async Loop</code>
+            </div>
+          </div>
+
+          <!-- Card 2 -->
+          <div class="bento-card">
+            <div class="bento-icon-box emerald">🔄</div>
+            <h3 class="bento-title">Multi-Turn Session Continuity</h3>
+            <p class="bento-desc">
+              Continue complex feature work across multiple turns. The <code>continue_agent_session</code> tool reuses the same Antigravity conversation thread, preserving code diffs, compiler feedback, and AST context.
+            </p>
+          </div>
+
+          <!-- Card 3 -->
+          <div class="bento-card">
+            <div class="bento-icon-box purple">🛡️</div>
+            <h3 class="bento-title">Defense-in-Depth Sandboxing</h3>
+            <p class="bento-desc">
+              Explicit workspace allowlist guarantees that ChatGPT and Antigravity can never escape authorized directories. Constant-time SHA-256 Bearer tokens and Fernet (AES-256) secrets encryption at rest.
+            </p>
+          </div>
+
+          <!-- Card 4 -->
+          <div class="bento-card">
+            <div class="bento-icon-box amber">🌐</div>
+            <h3 class="bento-title">Dual Protocol: OpenAPI + MCP</h3>
+            <p class="bento-desc">
+              Exposes both OpenAPI 3.1 endpoints for ChatGPT Custom GPT Actions (Web & Mobile) and Model Context Protocol (MCP 2.0 SSE) for ChatGPT Desktop, Cursor, and Claude Code.
+            </p>
+          </div>
+
+          <!-- Card 5 -->
+          <div class="bento-card">
+            <div class="bento-icon-box">📊</div>
+            <h3 class="bento-title">Full Observability & Audit Trails</h3>
+            <p class="bento-desc">
+              Every tool call, AST edit, terminal command, and prompt is immutably logged. Stream real-time events via Server-Sent Events (SSE) or WebSockets directly to the Command Center.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Tool Explorer -->
+    <section class="section" id="tools">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-badge">Tool Reference</div>
+          <h2 class="section-title">12 ChatGPT Control Plane Tools</h2>
+          <p class="section-desc">
+            Explore the exact MCP tools and OpenAPI operations exposed to ChatGPT. Click any tool to inspect parameter schemas and sample payloads.
+          </p>
+        </div>
+
+        <div class="tool-explorer-box">
+          <!-- Tool List Column -->
+          <div class="tool-list-col">
+            <div class="tool-list-header">
+              <input type="text" id="tool-search" class="tool-search-input" placeholder="Search 12 tools...">
+            </div>
+            <div class="tool-items-scroll" id="tool-rows-container">
+              <!-- Dynamically populated by landing.js -->
+            </div>
+          </div>
+
+          <!-- Tool Details Column -->
+          <div class="tool-detail-col">
+            <div class="tool-detail-header">
+              <div class="tool-detail-title-row">
+                <h3 class="tool-detail-title" id="tool-detail-title">send_agent_command</h3>
+                <span class="method-badge post" id="tool-detail-proto">OpenAPI 3.1 & MCP</span>
+              </div>
+              <p class="tool-detail-desc" id="tool-detail-desc">
+                Primary tool used by ChatGPT to dispatch an autonomous development command to the local Antigravity Agent.
+              </p>
+            </div>
+
+            <div style="font-family: var(--font-mono); font-size: 0.775rem; color: var(--text-muted); margin-bottom: 0.6rem;">
+              PARAMETERS & INPUT SCHEMA
+            </div>
+            <table class="tool-schema-table">
+              <thead>
+                <tr>
+                  <th>Parameter</th>
+                  <th>Type</th>
+                  <th>Required</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody id="tool-schema-tbody"></tbody>
+            </table>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; flex: 1;">
+              <div class="code-window">
+                <div class="code-window-bar">
+                  <span class="window-title">Example Request</span>
+                  <button class="copy-btn" data-copy-target="tool-example-req">Copy</button>
+                </div>
+                <pre class="code-content" id="tool-example-req"></pre>
+              </div>
+
+              <div class="code-window">
+                <div class="code-window-bar">
+                  <span class="window-title">Example Response</span>
+                  <button class="copy-btn" data-copy-target="tool-example-res">Copy</button>
+                </div>
+                <pre class="code-content" id="tool-example-res"></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quickstart & Integration Hub -->
+    <section class="section" id="quickstart">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-badge">Fast Setup</div>
+          <h2 class="section-title">Connect in Under 2 Minutes</h2>
+          <p class="section-desc">
+            Choose your client below to copy ready-to-paste configurations for Custom GPTs, ChatGPT Desktop, Python SDK, or cURL.
+          </p>
+        </div>
+
+        <div class="integration-box">
+          <div class="integration-tabs">
+            <button class="integ-tab-btn active" data-tab="chatgpt">
+              <span>🤖</span>
+              <span>ChatGPT Custom GPT</span>
+            </button>
+            <button class="integ-tab-btn" data-tab="mcp">
+              <span>🔌</span>
+              <span>ChatGPT Desktop / MCP 2.0</span>
+            </button>
+            <button class="integ-tab-btn" data-tab="python">
+              <span>🐍</span>
+              <span>Python SDK</span>
+            </button>
+            <button class="integ-tab-btn" data-tab="curl">
+              <span>💻</span>
+              <span>cURL / REST API</span>
+            </button>
+          </div>
+
+          <!-- Tab 1: ChatGPT Custom GPT -->
+          <div class="integ-tab-content active" id="integ-content-chatgpt">
+            <div class="integ-grid">
+              <ol class="integ-steps-list">
+                <li class="integ-step-item">
+                  <div class="integ-step-title">Create a Custom GPT</div>
+                  <div class="integ-step-desc">
+                    Go to <a href="https://chatgpt.com" target="_blank" style="color: var(--accent-cyan);">chatgpt.com</a> → <strong>Explore GPTs</strong> → <strong>Create</strong>. Name it <strong>Antigravity Architect</strong>.
+                  </div>
+                </li>
+                <li class="integ-step-item">
+                  <div class="integ-step-title">Import Action OpenAPI Schema</div>
+                  <div class="integ-step-desc">
+                    Under <strong>Actions</strong>, click <strong>Create new action</strong> → <strong>Import from URL</strong> and paste the link on the right.
+                  </div>
+                </li>
+                <li class="integ-step-item">
+                  <div class="integ-step-title">Configure Authentication</div>
+                  <div class="integ-step-desc">
+                    Set <strong>Authentication Type</strong> to <code>API Key</code>, <strong>Auth Type</strong> to <code>Bearer</code>, and enter your <code>agb_live_...</code> key from <code>.initial_api_key.txt</code>.
+                  </div>
+                </li>
+              </ol>
+
+              <div class="copy-block">
+                <div class="copy-block-header">
+                  <span class="copy-block-lang">OpenAPI 3.1 URL</span>
+                  <button class="copy-btn" data-copy-target="code-openapi-url">Copy URL</button>
+                </div>
+                <div class="copy-block-code" id="code-openapi-url">http://127.0.0.1:8000/api/v1/chatgpt/openapi.json</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: MCP Config -->
+          <div class="integ-tab-content" id="integ-content-mcp">
+            <div class="integ-grid">
+              <div>
+                <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">Antigravity & ChatGPT Desktop MCP</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                  Add the remote SSE endpoint to your MCP configuration file:
+                </p>
+                <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
+                  Location: <code>~/.gemini/antigravity/mcp_config.json</code> or your ChatGPT Desktop app developer settings.
+                </div>
+              </div>
+
+              <div class="copy-block">
+                <div class="copy-block-header">
+                  <span class="copy-block-lang">JSON</span>
+                  <button class="copy-btn" data-copy-target="code-mcp-sse-url">Copy JSON</button>
+                </div>
+                <pre class="copy-block-code" id="code-mcp-sse-url"></pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 3: Python SDK -->
+          <div class="integ-tab-content" id="integ-content-python">
+            <div class="copy-block">
+              <div class="copy-block-header">
+                <span class="copy-block-lang">Python</span>
+                <button class="copy-btn" data-copy-target="code-python-sdk">Copy Code</button>
+              </div>
+              <pre class="copy-block-code" id="code-python-sdk">import httpx
+
+API_URL = "http://127.0.0.1:8000/api/v1"
+API_KEY = "agb_live_YOUR_KEY"
+HEADERS = {"Authorization": f"Bearer {API_KEY}"}
+
+# 1. Dispatch prompt to local Antigravity Agent
+payload = {
+    "project_id": "proj_default",
+    "prompt": "Create JWT authentication endpoints in app/api/auth.py",
+    "priority": "high"
+}
+response = httpx.post(f"{API_URL}/tasks", json=payload, headers=HEADERS)
+task = response.json()
+print(f"Task Queued: {task['id']}")
+
+# 2. Continue the exact same session multi-turn
+continuation = httpx.post(
+    f"{API_URL}/tasks/{task['id']}/continue",
+    json={"prompt": "Now write unit tests with 100% coverage"},
+    headers=HEADERS
+)
+print(f"Session Preserved: {continuation.json()['session_id']}")</pre>
+            </div>
+          </div>
+
+          <!-- Tab 4: cURL -->
+          <div class="integ-tab-content" id="integ-content-curl">
+            <div class="copy-block">
+              <div class="copy-block-header">
+                <span class="copy-block-lang">Bash</span>
+                <button class="copy-btn" data-copy-target="code-curl-snippet">Copy cURL</button>
+              </div>
+              <pre class="copy-block-code" id="code-curl-snippet">curl -X POST "http://127.0.0.1:8000/api/v1/tasks" \
+  -H "Authorization: Bearer agb_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_id": "proj_default",
+    "prompt": "Inspect codebase and run pytest suite",
+    "priority": "normal"
+  }'</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Side-by-Side Comparison -->
+    <section class="section" id="comparison">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-badge">Architectural Synergy</div>
+          <h2 class="section-title">Why Pair ChatGPT with Antigravity?</h2>
+          <p class="section-desc">
+            Compare standalone chatbots and local agents with the unified Bridge architecture.
+          </p>
+        </div>
+
+        <div class="comparison-table-wrap">
+          <table class="comp-table">
+            <thead>
+              <tr>
+                <th>Capability</th>
+                <th>ChatGPT Alone</th>
+                <th>Antigravity Alone</th>
+                <th class="highlight">Bridge Architecture ⚡</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>High-level System Architecture & Strategy</td>
+                <td><span class="check-icon">✓</span> World-class</td>
+                <td><span class="cross-icon">−</span> Code-focused</td>
+                <td class="highlight"><span class="check-icon">✓</span> Lead System Architect</td>
+              </tr>
+              <tr>
+                <td>Direct Local Terminal & Bare-Metal Execution</td>
+                <td><span class="cross-icon">✗</span> Sandboxed cloud only</td>
+                <td><span class="check-icon">✓</span> Local Machine</td>
+                <td class="highlight"><span class="check-icon">✓</span> Full Local Terminal Execution</td>
+              </tr>
+              <tr>
+                <td>Multi-Turn Conversational Memory</td>
+                <td><span class="check-icon">✓</span> Conversational</td>
+                <td><span class="cross-icon">−</span> Turn-bounded</td>
+                <td class="highlight"><span class="check-icon">✓</span> Persistent Session Continuity</td>
+              </tr>
+              <tr>
+                <td>Security Boundary & Path Traversal Guard</td>
+                <td><span class="cross-icon">N/A</span> Cloud sandbox</td>
+                <td><span class="cross-icon">−</span> Full machine rights</td>
+                <td class="highlight"><span class="check-icon">✓</span> Strict Allowlist Boundary</td>
+              </tr>
+              <tr>
+                <td>Mobile & Web Access (iOS, Android, Chatgpt.com)</td>
+                <td><span class="check-icon">✓</span> Native Apps</td>
+                <td><span class="cross-icon">✗</span> Local IDE only</td>
+                <td class="highlight"><span class="check-icon">✓</span> Dispatch code from iPhone/Web</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ Accordion -->
+    <section class="section" id="faq">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-badge">Frequently Asked Questions</div>
+          <h2 class="section-title">Developer Questions & Security</h2>
+        </div>
+
+        <div class="faq-grid">
+          <div class="faq-card open">
+            <div class="faq-question">
+              <span>How does ChatGPT communicate with my local machine securely?</span>
+              <span class="faq-icon">+</span>
+            </div>
+            <div class="faq-answer">
+              The Bridge operates a local FastAPI server bound to <code>127.0.0.1:8000</code>. For external access from chatgpt.com, an encrypted Cloudflare Tunnel (TLS 1.3) proxies HTTPS requests without opening incoming firewall ports. Every request is verified with constant-time SHA-256 Bearer tokens.
+            </div>
+          </div>
+
+          <div class="faq-card">
+            <div class="faq-question">
+              <span>Does my proprietary code leave my computer?</span>
+              <span class="faq-icon">+</span>
+            </div>
+            <div class="faq-answer">
+              No. Antigravity runs entirely locally on your machine. Only the high-level task summaries, execution status, and files modified are exchanged with ChatGPT to provide conversational feedback.
+            </div>
+          </div>
+
+          <div class="faq-card">
+            <div class="faq-question">
+              <span>How does multi-turn session continuation work?</span>
+              <span class="faq-icon">+</span>
+            </div>
+            <div class="faq-answer">
+              When ChatGPT calls <code>continue_agent_session</code>, the Gateway reuses the same conversation thread in Antigravity. This prevents cold starts and ensures subsequent refactorings have full awareness of prior edits.
+            </div>
+          </div>
+
+          <div class="faq-card">
+            <div class="faq-question">
+              <span>What happens if an agent command fails or hangs?</span>
+              <span class="faq-icon">+</span>
+            </div>
+            <div class="faq-answer">
+              The Bridge includes automated process timeouts, cancellation propagation via <code>cancel_agent_session</code>, and an idempotency layer to avoid duplicate task executions.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Call to Action Banner -->
+    <div class="container">
+      <div class="cta-banner">
+        <h2 class="cta-title">Ready to Supercharge Your AI Dev Workflow?</h2>
+        <p class="cta-desc">
+          Launch the Command Center to inspect active sessions, manage scoped API keys, and dispatch tasks directly to Antigravity.
+        </p>
+        <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+          <a href="/dashboard" class="btn btn-primary btn-glow" style="padding: 0.85rem 2rem; font-size: 1rem;">
+            <span>Launch Command Center</span>
+            <span>→</span>
+          </a>
+          <a href="/docs" target="_blank" class="btn btn-secondary" style="padding: 0.85rem 2rem; font-size: 1rem;">
+            <span>Explore Swagger API ↗</span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div>
+            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem;">
+              <span style="font-size: 1.25rem;">⚡</span>
+              <strong style="font-size: 1.05rem;">ChatGPT × Antigravity Bridge</strong>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-secondary); max-width: 320px; line-height: 1.6;">
+              Production-grade developer control plane connecting ChatGPT with Google Antigravity via native Model Context Protocol (MCP) and OpenAPI 3.1.
+            </p>
+          </div>
+
+          <div>
+            <div class="footer-col-title">Navigation</div>
+            <ul class="footer-links">
+              <li><a href="#visualizer" class="footer-link">3D Bridge</a></li>
+              <li><a href="#workflow" class="footer-link">Live Simulator</a></li>
+              <li><a href="#features" class="footer-link">Architecture</a></li>
+              <li><a href="#tools" class="footer-link">Control Tools</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <div class="footer-col-title">Developer Resources</div>
+            <ul class="footer-links">
+              <li><a href="/dashboard" class="footer-link">Command Center</a></li>
+              <li><a href="/docs" target="_blank" class="footer-link">Swagger OpenAPI ↗</a></li>
+              <li><a href="/api/v1/chatgpt/openapi.json" target="_blank" class="footer-link">ChatGPT Action Spec ↗</a></li>
+              <li><a href="/health" target="_blank" class="footer-link">Health Endpoint ↗</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <div class="footer-col-title">Security & Stack</div>
+            <ul class="footer-links">
+              <li><span style="color: var(--text-muted); font-size: 0.85rem;">FastAPI + SQLAlchemy</span></li>
+              <li><span style="color: var(--text-muted); font-size: 0.85rem;">Model Context Protocol (MCP)</span></li>
+              <li><span style="color: var(--text-muted); font-size: 0.85rem;">SHA-256 HMAC Bearer Auth</span></li>
+              <li><span style="color: var(--text-muted); font-size: 0.85rem;">Cloudflare Tunnel TLS 1.3</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <div>© 2026 ChatGPT × Antigravity Bridge. All rights reserved.</div>
+          <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent-cyan);">
+            Workspace: d:\PROJECTS\tool
+          </div>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Script -->
+  <script src="/static/landing.js"></script>
+</body>
+</html>
