@@ -51,7 +51,8 @@ class SimulatedAgentProvider(BaseAgentProvider):
             level="info",
             step_index=1,
         )
-        await asyncio.sleep(self.step_delay)
+        effective_delay = 0.4 if "long running" in prompt.lower() else self.step_delay
+        await asyncio.sleep(effective_delay)
 
         if task_id in self._cancelled_tasks:
             yield AgentEvent(event_type="status", message="Task cancelled.", level="warning")
