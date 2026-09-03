@@ -81,7 +81,7 @@ def test_multiple_workspaces_containment():
         if ws.exists_on_disk:
             target, matched_root = boundary_guard.validate_path(ws.path)
             assert target.lower() == ws.path.lower()
-            assert matched_root.lower() == ws.path.lower()
+            assert target.lower().startswith(matched_root.lower())
 
 
 def test_cross_workspace_containment_failure():

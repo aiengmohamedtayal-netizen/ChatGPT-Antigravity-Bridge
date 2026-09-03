@@ -1,0 +1,58 @@
+{
+  "version": "1.0",
+  "default_action": "ask",
+  "rules": [
+    {
+      "resource": "file_system",
+      "action": "read",
+      "condition": "path_in_workspace",
+      "decision": "allow"
+    },
+    {
+      "resource": "file_system",
+      "action": "write",
+      "condition": "path_in_workspace",
+      "decision": "allow"
+    },
+    {
+      "resource": "command_execution",
+      "action": "run",
+      "allowlist": [
+        "npm install",
+        "npm run build",
+        "npm test",
+        "npm run dev",
+        "pytest",
+        "python -m pytest",
+        "python -m unittest",
+        "git status",
+        "git diff",
+        "git log",
+        "git commit",
+        "git add",
+        "tsc",
+        "eslint",
+        "flake8",
+        "black"
+      ],
+      "decision": "allow"
+    },
+    {
+      "resource": "command_execution",
+      "action": "run",
+      "denylist": [
+        "rm -rf /",
+        "format",
+        "del /s /q c:\\",
+        "sudo",
+        "su"
+      ],
+      "decision": "deny"
+    },
+    {
+      "resource": "mcp",
+      "action": "call_tool",
+      "decision": "allow"
+    }
+  ]
+}

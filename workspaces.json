@@ -3,23 +3,34 @@
     {
       "id": "proj_tool",
       "name": "ChatGPT Bridge (Tool)",
-      "path": "d:\\PROJECTS\\tool",
+      "path": "D:\\PROJECTS\\tool",
       "enabled": true,
-      "description": "ChatGPT x Antigravity Bridge gateway and orchestration engine"
+      "description": "ChatGPT x Antigravity Bridge gateway and orchestration engine",
+      "instructions": ""
     },
     {
       "id": "proj_training",
       "name": "Training Workspace",
-      "path": "d:\\PROJECTS\\training",
+      "path": "D:\\PROJECTS\\training",
       "enabled": true,
-      "description": "Training projects and experimental scripts"
+      "description": "Training projects and experimental scripts",
+      "instructions": ""
     },
     {
       "id": "proj_smart_home",
       "name": "Smart Home Project",
-      "path": "d:\\PROJECTS\\smart home project",
+      "path": "D:\\PROJECTS\\smart home project",
       "enabled": true,
-      "description": "Smart Home Full-stack Next.js Application and agents"
+      "description": "Smart Home Full-stack Next.js Application and agents",
+      "instructions": ""
+    },
+    {
+      "id": "proj_training_e2e_test_234320",
+      "name": "Training Workspace (e2e_test_234320)",
+      "path": "D:\\PROJECTS\\training\\e2e_test_234320",
+      "enabled": true,
+      "description": "Auto-resolved sub-workspace of Training Workspace",
+      "instructions": ""
     }
   ]
 }
