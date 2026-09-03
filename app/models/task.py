@@ -23,6 +23,7 @@ class TaskStatus:
     QUEUED = "queued"
     RUNNING = "running"
     WAITING_FOR_INPUT = "waiting_for_input"
+    VERIFYING = "verifying"
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"

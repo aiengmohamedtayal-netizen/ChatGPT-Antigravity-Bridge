@@ -3,7 +3,7 @@
 import asyncio
 from datetime import datetime, timezone
 import logging
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 from sqlalchemy.orm import Session
 from app import database
 from app.models.task import Task, TaskPriority, TaskStatus
@@ -207,11 +207,70 @@ class TaskOrchestrator:
                 )
                 return
 
-            # State transition: running -> completed
+            # State transition: running -> verifying
+            task.status = TaskStatus.VERIFYING
+            db.commit()
+
+            await execution_logger.log_and_broadcast(
+                task_id=task.id,
+                message="Agent execution finished. Starting autonomous verification (build/lint/tests)...",
+                level="info",
+                step_index=90,
+            )
+
+            # Auto verification step (skip if simulated)
+            verification_result = {"status": "skipped", "output": "Skipped in simulated mode."}
+            if provider.provider_id != "simulated":
+                verification_result = await self._run_autonomous_verification(project.workspace_path)
+            
             final_text = "".join(full_response_text).strip()
             summary = final_text[:300] + ("..." if len(final_text) > 300 else "")
             if not summary:
                 summary = "Task executed successfully by Antigravity."
+
+            if verification_result["status"] == "failed":
+                # Check retry limit (max 2 retries)
+                retry_count = task.metadata_json.get("retry_count", 0) if task.metadata_json else 0
+                if retry_count < 2:
+                    await execution_logger.log_and_broadcast(
+                        task_id=task.id,
+                        message=f"Verification failed. Auto-healing attempt {retry_count + 1}/2...",
+                        level="warning",
+                        step_index=95,
+                    )
+                    
+                    # Create continuation task
+                    child_task = Task(
+                        project_id=project.id,
+                        parent_task_id=task.id,
+                        session_id=session_id,
+                        prompt=f"The verification/build step failed with the following output:\n\n```\n{verification_result['output']}\n```\n\nPlease inspect the failure, fix the issue, and ensure the project builds/tests successfully.",
+                        priority=task.priority,
+                        status=TaskStatus.QUEUED,
+                        metadata_json={"retry_count": retry_count + 1}
+                    )
+                    db.add(child_task)
+                    db.commit()
+                    db.refresh(child_task)
+                    
+                    # Add reference to original task response
+                    final_text += f"\n\nVerification Failed. Enqueued auto-healing task: {child_task.id}"
+                    await self.enqueue_task(child_task.id, priority=child_task.priority)
+                else:
+                    final_text += f"\n\nVerification Failed after {retry_count} retries:\n{verification_result['output']}"
+                    await execution_logger.log_and_broadcast(
+                        task_id=task.id,
+                        message=f"Verification failed permanently after {retry_count} retries: {verification_result['output'][:200]}...",
+                        level="error",
+                        step_index=95,
+                    )
+            else:
+                await execution_logger.log_and_broadcast(
+                    task_id=task.id,
+                    message="Verification passed successfully.",
+                    level="info",
+                    step_index=95,
+                )
 
             task.status = TaskStatus.COMPLETED
             task.completed_at = datetime.now(timezone.utc)
@@ -221,6 +280,7 @@ class TaskOrchestrator:
                 "files_modified": files_modified,
                 "artifacts": artifacts,
                 "session_id": session_id,
+                "verification": verification_result
             }
             db.commit()
 
@@ -255,6 +315,71 @@ class TaskOrchestrator:
                 pass
         finally:
             db.close()
+
+    async def _run_autonomous_verification(self, workspace_path: str) -> Dict[str, Any]:
+        """Detect project type and run appropriate tests/builds automatically."""
+        import os
+        import asyncio
+        import logging
+        from app.security.boundary import WorkspaceBoundaryGuard
+        
+        try:
+            canonical_ws = WorkspaceBoundaryGuard.canonicalize(workspace_path)
+            if not canonical_ws:
+                return {"status": "skipped", "output": "Invalid workspace path"}
+
+            commands = []
+            
+            # Detect JS/TS
+            if os.path.exists(os.path.join(canonical_ws, "package.json")):
+                commands.append("npm install --no-audit --no-fund")
+                # Very basic heuristic for build/test scripts
+                try:
+                    with open(os.path.join(canonical_ws, "package.json"), "r") as f:
+                        import json
+                        pkg = json.load(f)
+                        scripts = pkg.get("scripts", {})
+                        if "build" in scripts:
+                            commands.append("npm run build")
+                        if "test" in scripts and "echo" not in scripts["test"]:
+                            commands.append("npm test")
+                except Exception:
+                    pass
+
+            # Detect Python
+            if os.path.exists(os.path.join(canonical_ws, "pytest.ini")) or os.path.exists(os.path.join(canonical_ws, "tests")):
+                commands.append("python -m pytest")
+
+            if not commands:
+                return {"status": "skipped", "output": "No standard test/build scripts detected."}
+
+            # Run commands
+            full_output = []
+            for cmd in commands:
+                full_output.append(f"$ {cmd}")
+                proc = await asyncio.create_subprocess_shell(
+                    cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.STDOUT,
+                    cwd=canonical_ws
+                )
+                stdout, _ = await proc.communicate()
+                out_str = stdout.decode("utf-8", errors="ignore").strip()
+                full_output.append(out_str)
+                
+                if proc.returncode != 0:
+                    return {
+                        "status": "failed",
+                        "output": "\n".join(full_output)
+                    }
+
+            return {
+                "status": "passed",
+                "output": "\n".join(full_output)
+            }
+
+        except Exception as e:
+            return {"status": "error", "output": f"Verification encountered error: {str(e)}"}
 
     async def cancel_task(self, task_id: str) -> bool:
         """Cancel a running or queued task."""

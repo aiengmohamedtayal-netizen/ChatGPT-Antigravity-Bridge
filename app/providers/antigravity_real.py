@@ -64,11 +64,16 @@ class AntigravityRealAgentProvider(BaseAgentProvider):
 
     async def create_session(self, workspace_path: str, session_id: Optional[str] = None) -> str:
         """Create a real Antigravity session using new-conversation."""
+        from app.security.policy_manager import policy_manager
+
         if session_id:
             return session_id
 
         if not os.path.exists(self.cli_path):
             raise RuntimeError(f"Cannot spawn real Antigravity agent: {self.cli_path} not found.")
+
+        # Apply headless permission policy for the workspace
+        policy_manager.apply_policy(workspace_path)
 
         title = f"ChatGPT Gateway ({os.path.basename(workspace_path)})"
         init_prompt = f"Initialize development session in workspace: {workspace_path}."

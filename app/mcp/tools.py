@@ -249,6 +249,16 @@ WORKSPACE_FILESYSTEM_TOOLS: List[McpTool] = [
             },
         ),
     ),
+    McpTool(
+        name="discover_workspaces",
+        description="Auto-discover and register safe projects from configured roots.",
+        inputSchema=McpToolInputSchema(properties={}),
+    ),
+    McpTool(
+        name="refresh_workspaces",
+        description="Reload workspaces configuration from disk.",
+        inputSchema=McpToolInputSchema(properties={}),
+    ),
 ]
 
 # =====================================================================
@@ -482,6 +492,17 @@ async def execute_mcp_tool(name: str, arguments: Dict[str, Any], db: Optional[Se
         if name == "list_workspaces":
             enabled_only = arguments.get("enabled_only", True)
             res = fs_service.list_workspaces(enabled_only=enabled_only)
+            return McpToolResult(content=[McpContentItem(text=json.dumps(res, indent=2))])
+
+        elif name == "discover_workspaces":
+            added = workspace_service.discover_and_register_all()
+            workspace_service.sync_with_db(db)
+            res = [fs_service.get_workspace(w.id) for w in added]
+            return McpToolResult(content=[McpContentItem(text=json.dumps(res, indent=2))])
+
+        elif name == "refresh_workspaces":
+            workspace_service.reload()
+            res = {"status": "success", "workspaces": len(workspace_service.list_authorized_workspaces())}
             return McpToolResult(content=[McpContentItem(text=json.dumps(res, indent=2))])
 
         elif name == "get_workspace":

@@ -77,13 +77,16 @@ sequenceDiagram
     ChatGPT->>Gateway: POST /api/v1/tasks (prompt, priority)
     Gateway-->>ChatGPT: 201 Created (task_id, status: queued)
     
-    Gateway->>Antigravity: Dispatch prompt to local AgentAPI session
-    Antigravity->>Disk: Inspect files, apply edits, run tests
-    Antigravity-->>Gateway: Tool call progress & execution telemetry
-    Gateway-->>User: Real-time logs stream via WebSockets
+    Gateway->>Antigravity: Apply Permission Policy & Dispatch prompt
+    Antigravity->>Disk: Inspect files, apply edits (Autonomous)
+    Antigravity-->>Gateway: Execution completes
+    
+    Gateway->>Disk: Auto-Verify (npm build/test, pytest)
+    Note over Gateway,Disk: If verify fails: Auto-heal (retry) up to 2 times
+    Gateway-->>User: Real-time logs & artifacts stream via WebSockets
     
     ChatGPT->>Gateway: GET /api/v1/tasks/{id} (polling)
-    Gateway-->>ChatGPT: status: completed, files_modified: [...]
+    Gateway-->>ChatGPT: status: completed, verification: passed
     
     User->>ChatGPT: "Looks good, now add rate limiting"
     ChatGPT->>Gateway: POST /api/v1/tasks/{id}/continue
@@ -98,7 +101,11 @@ sequenceDiagram
 - **Multi-Workspace Authorization**: Dynamically discover and manage multiple authorized project directories via `workspaces.json`. ChatGPT and Antigravity can switch between workspaces at runtime without restarting the Bridge.
 - **Dynamic Filesystem Tools**: 10 MCP tools (`list_workspaces`, `get_workspace`, `list_directory`, `read_file`, `write_file`, `create_directory`, `move_file`, `delete_file`, `search_files`, `get_file_tree`) provide direct filesystem access strictly bounded to authorized roots.
 - **Session Continuity**: Follow-up prompts reuse the existing Antigravity conversation session (`session_id`), allowing iterative refactoring without re-sending the whole codebase.
-- **Priority Task Queue**: Background asynchronous scheduler prioritizing `urgent` > `high` > `normal` > `low` tasks. Zombie tasks from previous process runs are automatically cleaned on startup.
+- **Auto Workspace Discovery**: Automatically scans configured roots (`D:\PROJECTS`, `Documents`, etc.) to discover and register workspaces (`npm`, `python`, `rust`, etc.) based on standard markers.
+- **Smart Workspace Resolution**: Supports dynamic, instant sub-workspace routing. Requesting a task in `training/test` will resolve the base project, auto-create the `test` directory if missing, authorize it, and execute inside it—all seamlessly.
+- **Permission Policy Engine**: Employs a robust `PermissionPolicyManager` that generates per-workspace `.antigravity/permissions.json` policies, allowing maximum safe headless operation (e.g. file reads/writes, safe commands like `npm install`, `pytest`) while strictly denying destructive actions or system-wide modification.
+- **Auto Verification & Self-Healing**: After Antigravity writes code, the orchestrator autonomously detects the project type (JS/TS, Python) and runs automated verification (`npm run build`, `npm test`, `pytest`). If a build or test fails, the orchestrator automatically re-prompts the agent with the error logs (up to 2 times) to self-heal and fix the failure.
+- **Priority Task Queue**: Background asynchronous scheduler prioritizing `urgent` > `high` > `normal` > `low` tasks. Complete lifecycle tracing: `queued -> running -> verifying -> completed/failed`.
 - **Filesystem Boundary Guard**: Resolves canonical symlink-free paths using `os.path.realpath` to prevent directory traversal (`../`), symlink/junction escaping, cross-drive access, and unauthorized paths outside registered workspace roots. Windows path casing and separator normalization built-in.
 - **Pure Headless Operation**: Zero frontend bloat or dependencies. Runs strictly as a high-performance background daemon and MCP server controlled directly from ChatGPT or your terminal.
 - **Zero Port Forwarding**: Ships with an automated Cloudflare quick tunnel helper (`run_tunnel.py` / `START GATEWAY.bat`) establishing an end-to-end TLS 1.3 tunnel to `127.0.0.1:8000`.

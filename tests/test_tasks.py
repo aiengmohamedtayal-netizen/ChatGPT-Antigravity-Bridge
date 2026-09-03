@@ -28,7 +28,7 @@ def test_create_task_invalid_project(client, admin_api_key):
     }
     response = client.post("/api/v1/tasks", json=payload, headers=headers)
     assert response.status_code == 404
-    assert response.json()["code"] == "PROJECT_NOT_FOUND"
+    assert response.json()["code"] == "WORKSPACE_NOT_FOUND"
 
 
 def test_task_idempotency(client, test_project, admin_api_key):

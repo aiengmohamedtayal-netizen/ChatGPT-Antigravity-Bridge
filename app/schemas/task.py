@@ -23,7 +23,8 @@ class ExecutionLogResponse(BaseModel):
 class TaskCreate(BaseModel):
     """Schema for submitting a prompt to Antigravity (used by ChatGPT Action)."""
 
-    project_id: str = Field(..., description="ID of the target project workspace")
+    workspace: Optional[str] = Field(None, description="Name or path of the target workspace. Can be a subpath like 'training/test'.")
+    project_id: Optional[str] = Field(None, description="ID of the target project workspace (deprecated, use workspace instead)")
     prompt: str = Field(..., min_length=1, max_length=20000, description="Instruction or coding request for Antigravity")
     priority: Optional[str] = Field(default=TaskPriority.NORMAL, description="Task execution priority: low, normal, high, urgent")
     parent_task_id: Optional[str] = Field(default=None, description="Optional ID of preceding task to continue conversational context")

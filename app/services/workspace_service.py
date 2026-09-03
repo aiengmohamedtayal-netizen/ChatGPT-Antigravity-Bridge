@@ -204,7 +204,72 @@ class WorkspaceService:
         except Exception:
             pass
 
+        # Smart Resolution: "training/test" -> find "training", append "test", auto-register
+        parts = workspace_id_or_path.replace("\\", "/").strip("/").split("/")
+        if len(parts) > 1:
+            base_name = parts[0]
+            sub_path = os.path.join(*parts[1:])
+            # Don't recurse infinitely, just check existing workspaces
+            base_ws = self._workspaces.get(base_name)
+            if not base_ws:
+                for ws in self._workspaces.values():
+                    if ws.name.lower() == base_name.lower():
+                        base_ws = ws
+                        break
+            
+            if base_ws:
+                target_path = os.path.join(base_ws.path, sub_path)
+                canon_target = self.canonicalize(target_path)
+                if canon_target and not self.is_restricted_path(canon_target):
+                    try:
+                        if os.path.commonpath([canon_target, base_ws.path]).lower() == base_ws.path.lower():
+                            if not os.path.exists(canon_target):
+                                os.makedirs(canon_target, exist_ok=True)
+                            new_id = f"{base_ws.id}_{sub_path.replace(os.sep, '_').replace('/', '_')}"
+                            return self.register_workspace(
+                                path=canon_target,
+                                name=f"{base_ws.name} ({sub_path})",
+                                workspace_id=new_id,
+                                description=f"Auto-resolved sub-workspace of {base_ws.name}",
+                                save_to_config=True
+                            )
+                    except ValueError:
+                        pass
+
+        # Auto-Discovery Fallback
+        from app.services.discovery_service import discovery_service
+        discovered = discovery_service.discover_all(max_depth=2)
+        target_lower = workspace_id_or_path.lower()
+        for d in discovered:
+            if d.id.lower() == target_lower or d.name.lower() == target_lower:
+                return self.register_workspace(
+                    path=d.path,
+                    name=d.name,
+                    workspace_id=d.id,
+                    description=f"Auto-discovered {d.framework} project",
+                    save_to_config=True
+                )
+
         return None
+
+    def discover_and_register_all(self) -> List[AuthorizedWorkspace]:
+        """Runs discovery and automatically registers all safe projects found."""
+        from app.services.discovery_service import discovery_service
+        discovered = discovery_service.discover_all(max_depth=2)
+        added = []
+        for d in discovered:
+            if d.id not in self._workspaces and not self.is_restricted_path(d.path):
+                # Check if it's already registered under another ID
+                if not any(self.canonicalize(w.path).lower() == self.canonicalize(d.path).lower() for w in self._workspaces.values()):
+                    ws = self.register_workspace(
+                        path=d.path,
+                        name=d.name,
+                        workspace_id=d.id,
+                        description=f"Auto-discovered {d.framework} project",
+                        save_to_config=True
+                    )
+                    added.append(ws)
+        return added
 
     def match_path_to_workspace(self, target_path: str) -> Tuple[bool, Optional[AuthorizedWorkspace], str]:
         """

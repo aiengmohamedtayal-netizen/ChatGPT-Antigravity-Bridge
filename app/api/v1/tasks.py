@@ -65,16 +65,27 @@ async def create_task(
         if existing:
             return existing
 
-    # Verify project exists
-    project = db.query(Project).filter(Project.id == payload.project_id).first()
-    if not project:
+    # Workspace Resolution (Smart Resolution)
+    from app.services.workspace_service import workspace_service
+    target_ws = payload.workspace or payload.project_id
+    if not target_ws:
+        raise HTTPException(status_code=400, detail="Must provide 'workspace' or 'project_id'.")
+    
+    ws = workspace_service.get_workspace(target_ws)
+    if not ws:
         raise NotFoundError(
-            detail=f"Project with ID '{payload.project_id}' does not exist.",
-            code="PROJECT_NOT_FOUND",
+            detail=f"Workspace '{target_ws}' could not be resolved or found.",
+            code="WORKSPACE_NOT_FOUND",
         )
+    
+    # Sync project to DB if dynamically registered
+    project = db.query(Project).filter(Project.id == ws.id).first()
+    if not project:
+        workspace_service.sync_with_db(db)
+        project = db.query(Project).filter(Project.id == ws.id).first()
 
     task = Task(
-        project_id=payload.project_id,
+        project_id=ws.id,
         prompt=payload.prompt,
         priority=payload.priority or TaskPriority.NORMAL,
         parent_task_id=payload.parent_task_id,

@@ -36,6 +36,38 @@ async def list_workspaces(
     return fs_service.list_workspaces(enabled_only=enabled_only)
 
 
+@router.post("/discover", response_model=List[WorkspaceResponse], summary="Auto-discover workspaces")
+async def discover_workspaces(
+    request: Request,
+    api_key: ApiKey = Depends(require_scopes([ApiScope.PROJECTS_WRITE])),
+    db: Session = Depends(get_db),
+):
+    """Scan configured roots for safe projects and authorize them automatically."""
+    added = workspace_service.discover_and_register_all()
+    workspace_service.sync_with_db(db)
+    
+    if added:
+        record_audit_event(
+            db=db,
+            actor=api_key.name,
+            action="WORKSPACE_DISCOVER",
+            resource_type="workspace",
+            resource_id="multi",
+            ip_address=get_client_ip(request),
+            details={"count": len(added)},
+        )
+    return [fs_service.get_workspace(w.id) for w in added]
+
+
+@router.post("/refresh", summary="Refresh workspaces from disk")
+async def refresh_workspaces(
+    api_key: ApiKey = Depends(require_scopes([ApiScope.PROJECTS_WRITE])),
+):
+    """Reload workspaces configuration."""
+    workspace_service.reload()
+    return {"status": "success", "workspaces": len(workspace_service.list_authorized_workspaces())}
+
+
 @router.post("", response_model=WorkspaceDetailResponse, status_code=status.HTTP_201_CREATED, summary="Authorize new workspace root")
 async def authorize_workspace(
     payload: WorkspaceCreate,
