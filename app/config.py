@@ -51,9 +51,12 @@ class Settings(BaseSettings):
     ANTIGRAVITY_BRAIN_DIR: str = Field(default_factory=_default_brain_dir)
     ANTIGRAVITY_LANGUAGE_SERVER_PORT: int = 58045
 
-    # Rate Limiting
+    # Rate Limiting & Timeouts
     RATE_LIMIT_DEFAULT: str = "120/minute"
     RATE_LIMIT_TASK_CREATE: str = "30/minute"
+    REQUEST_TIMEOUT_SECONDS: float = 30.0
+    MCP_TOOL_TIMEOUT_SECONDS: float = 25.0
+    STRUCTURED_JSON_LOGS: bool = True
 
     # Security & CORS
     CORS_ORIGINS: Union[str, List[str]] = "*"

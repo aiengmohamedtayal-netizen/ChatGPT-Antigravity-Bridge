@@ -1,14 +1,10 @@
-"""Run script for launching the ChatGPT × Antigravity Bridge server."""
+"""Run script for launching the unified Antigravity Core & ChatGPT MCP Bridge server."""
 
-import uvicorn
+import os
 from app.config import get_settings
+from main import run_unified_bridge
 
 if __name__ == "__main__":
     settings = get_settings()
-    uvicorn.run(
-        "app.main:app",
-        host=settings.HOST,
-        port=settings.PORT,
-        reload=settings.DEBUG,
-        log_level="info",
-    )
+    port = int(os.environ.get("PORT", settings.PORT))
+    run_unified_bridge(host=settings.HOST, port=port)
