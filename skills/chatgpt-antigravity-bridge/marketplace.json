@@ -1,0 +1,98 @@
+{
+  "schema_version": "1.0",
+  "marketplace": "agensi.io",
+  "skill": {
+    "slug": "chatgpt-antigravity-bridge",
+    "name": "ChatGPT × Antigravity Bridge — Multi-Workspace MCP Orchestrator",
+    "tagline": "Bridge ChatGPT, Claude Code, Cursor & Copilot planning with autonomous Google Antigravity execution and bounded multi-workspace filesystem tools over MCP.",
+    "version": "1.0.0",
+    "license": "MIT",
+    "category": "DevOps & Automation",
+    "subcategories": [
+      "MCP Servers",
+      "IDE & Coding Workflows",
+      "Multi-Agent Orchestration"
+    ],
+    "tags": [
+      "mcp",
+      "google-antigravity",
+      "claude-code",
+      "cursor",
+      "github-copilot",
+      "windsurf",
+      "openai-codex",
+      "chatgpt",
+      "multi-workspace",
+      "autonomous-coding"
+    ]
+  },
+  "pricing": {
+    "model": "one_time_purchase",
+    "tier": "Single Developer License",
+    "price_usd": 9.0,
+    "currency": "USD",
+    "revenue_split": {
+      "creator_share_percent": 70,
+      "platform_share_percent": 30,
+      "estimated_creator_payout_usd": 6.3
+    },
+    "value_proposition": "Saves hours of manual copy-pasting between cloud AI architects and local repositories with 28 production-tested MCP tools, session continuity, and automated build/test self-healing."
+  },
+  "compatibility": {
+    "mcp_specification": "2024-11-05",
+    "supported_transports": ["stdio", "sse"],
+    "supported_agents": [
+      {
+        "agent": "Claude Code",
+        "install_path": "~/.claude/skills/chatgpt-antigravity-bridge",
+        "transport": "stdio or sse"
+      },
+      {
+        "agent": "Cursor",
+        "install_path": ".cursor/skills/chatgpt-antigravity-bridge",
+        "transport": "stdio or sse"
+      },
+      {
+        "agent": "GitHub Copilot / VS Code",
+        "install_path": ".github/skills/chatgpt-antigravity-bridge",
+        "transport": "stdio or sse"
+      },
+      {
+        "agent": "Windsurf",
+        "install_path": "~/.codeium/windsurf/skills/chatgpt-antigravity-bridge",
+        "transport": "stdio or sse"
+      },
+      {
+        "agent": "OpenAI Codex CLI",
+        "install_path": "~/.codex/skills/chatgpt-antigravity-bridge",
+        "transport": "stdio"
+      },
+      {
+        "agent": "ChatGPT Desktop & Custom GPT",
+        "install_path": "Remote MCP SSE / Custom GPT Instructions",
+        "transport": "sse + openapi-3.1"
+      }
+    ]
+  },
+  "setup_instructions": {
+    "quick_install_steps": [
+      "1. Extract `chatgpt-antigravity-bridge` into your agent's skills folder (e.g., `~/.claude/skills/` or `.cursor/skills/`).",
+      "2. Clone the Bridge backend (`git clone https://github.com/aiengmohamedtayal-netizen/ChatGPT-Antigravity-Bridge.git`) and run `pip install -r requirements.txt`.",
+      "3. Add your project directories to `workspaces.json`.",
+      "4. Register the MCP server in your client using stdio (`python -m app.mcp.server`) or SSE (`http://127.0.0.1:8000/mcp/sse`). See `references/client-configs.md` for copy-paste snippets."
+    ]
+  },
+  "security_compliance": {
+    "agensi_8_point_scan_verified": true,
+    "contains_binaries": false,
+    "contains_hardcoded_secrets": false,
+    "contains_destructive_commands": false,
+    "env_harvesting": false,
+    "package_contents": [
+      "chatgpt-antigravity-bridge/SKILL.md",
+      "chatgpt-antigravity-bridge/marketplace.json",
+      "chatgpt-antigravity-bridge/references/client-configs.md",
+      "chatgpt-antigravity-bridge/references/mcp-tools-reference.md"
+    ]
+  }
+}

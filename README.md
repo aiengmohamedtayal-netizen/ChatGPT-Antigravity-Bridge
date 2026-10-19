@@ -4,8 +4,72 @@
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-2024--11--05-green.svg)](https://modelcontextprotocol.io/)
+[![Agent Skill](https://img.shields.io/badge/Agensi.io-Agent%20Skill-purple.svg)](skills/chatgpt-antigravity-bridge/SKILL.md)
 
-A local control plane connecting ChatGPT to Google Antigravity. It lets ChatGPT act as a system architect and planner, while Antigravity runs code modifications, terminal commands, and session persistence directly in your local workspace.
+A local control plane and portable **Agent Skill** connecting **ChatGPT, Claude Code, Cursor, GitHub Copilot, Windsurf, and OpenAI Codex CLI** to **Google Antigravity**. It lets your preferred AI assistant act as a high-level system architect and planner, while Antigravity executes autonomous code modifications, terminal commands, build/test self-healing, and multi-workspace filesystem operations directly on your machine over MCP.
+
+---
+
+## Agensi.io Agent Skill (`chatgpt-antigravity-bridge`)
+
+This repository includes a marketplace-ready **Agent Skill** ([`skills/chatgpt-antigravity-bridge/`](skills/chatgpt-antigravity-bridge/SKILL.md)) engineered for **[Agensi.io](https://www.agensi.io)** and compatible with every major MCP-capable coding agent.
+
+### Value Proposition: Why Use This Skill?
+Modern AI development often splits into two halves: **high-level architectural reasoning** (in ChatGPT, Claude, or Cursor) and **autonomous local repository execution** (editing files across multiple repos, running test suites, and fixing build errors). Without a bridge, developers constantly copy-paste file trees, diffs, and terminal stack traces between windows.
+
+The **ChatGPT × Antigravity Bridge Agent Skill** eliminates that friction:
+- **Progressive-Disclosure Prompt Engineering**: Teaches Claude Code, Cursor, Copilot, Windsurf, Codex CLI, and ChatGPT *exactly when* to use bounded direct filesystem tools (`read_file`, `write_file`, `search_files`) versus *when* to delegate complex multi-file implementation to Google Antigravity (`send_agent_command`).
+- **Stateful Session Continuity**: Automatically preserves and reuses Antigravity `session_id` handles via `continue_agent_session`, enabling multi-turn iterative refactoring without re-indexing the codebase.
+- **Autonomous Verification & Self-Healing**: Every delegated Antigravity task automatically runs project verification (`pytest`, `npm test`, `npm run build`) and self-heals up to 2 times before reporting back.
+- **Zero-Trust Workspace Isolation**: Enforces canonical symlink-free path boundaries (`WorkspaceBoundaryGuard`) across all repositories defined in `workspaces.json`.
+
+### Installing the Agent Skill (Claude Code, Cursor, Copilot, Windsurf, Codex, ChatGPT)
+
+1. **Copy the Skill Folder**:
+   ```bash
+   # Claude Code (Global or Project)
+   cp -r skills/chatgpt-antigravity-bridge ~/.claude/skills/
+
+   # Cursor IDE
+   cp -r skills/chatgpt-antigravity-bridge .cursor/skills/
+
+   # GitHub Copilot / VS Code
+   cp -r skills/chatgpt-antigravity-bridge .github/skills/
+
+   # OpenAI Codex CLI
+   cp -r skills/chatgpt-antigravity-bridge ~/.codex/skills/
+   ```
+2. **Connect the MCP Server (`stdio` or `SSE`)**:
+   - **Local Stdio (Claude Code / Cursor / Copilot / Windsurf / Codex)**:
+     ```json
+     {
+       "mcpServers": {
+         "antigravity-bridge": {
+           "command": "python",
+           "args": ["-m", "app.mcp.server"],
+           "cwd": "/absolute/path/to/ChatGPT-Antigravity-Bridge"
+         }
+       }
+     }
+     ```
+   - **Remote SSE (ChatGPT Desktop / Shared Local Daemon)**:
+     ```json
+     {
+       "mcpServers": {
+         "antigravity-bridge": {
+           "url": "http://127.0.0.1:8000/mcp/sse"
+         }
+       }
+     }
+     ```
+   See [`skills/chatgpt-antigravity-bridge/references/client-configs.md`](skills/chatgpt-antigravity-bridge/references/client-configs.md) for copy-pasteable configs for every client.
+
+3. **Build & Validate the Agensi.io Marketplace `.zip` Archive**:
+   Run the included 8-point security validator and packager:
+   ```bash
+   python scripts/package_agensi_skill.py
+   ```
+   This verifies YAML frontmatter, screens out binaries/secrets, and outputs `dist/chatgpt-antigravity-bridge-skill.zip` ready for upload to the Agensi.io Creator Dashboard.
 
 ---
 
@@ -15,7 +79,7 @@ When planning code changes in ChatGPT, there is usually a disconnect: ChatGPT ex
 
 I built this bridge to connect the two without manual copy-pasting:
 
-1. **ChatGPT** acts as the high-level architect through a Custom GPT Action (OpenAPI 3.1) or Remote MCP over Server-Sent Events (SSE).
+1. **ChatGPT** (or Claude Code / Cursor / Copilot) acts as the high-level architect through a Custom GPT Action (OpenAPI 3.1), Local MCP (`stdio`), or Remote MCP over Server-Sent Events (SSE).
 2. **The Bridge Gateway** runs locally on FastAPI, validating requests, managing a priority queue, enforcing workspace filesystem boundaries, and storing audit logs in SQLite.
 3. **Google Antigravity** receives dispatched tasks via its local AgentAPI / Language Server, modifies the target repository, and reports progress back through real-time WebSockets and SSE.
 
@@ -25,12 +89,12 @@ I built this bridge to connect the two without manual copy-pasting:
 
 ```mermaid
 flowchart TD
-    subgraph Remote["Cloud / Remote"]
-        ChatGPT["ChatGPT<br/>(Architect & Orchestrator)"]
+    subgraph Remote["Cloud / IDE Planners"]
+        ChatGPT["ChatGPT / Claude / Cursor / Copilot<br/>(Architect & Orchestrator + SKILL.md)"]
     end
 
-    subgraph Tunnel["Encrypted Ingress"]
-        CF["Cloudflare Quick Tunnel<br/>(TLS 1.3 / No Port Forwarding)"]
+    subgraph Tunnel["Encrypted Ingress (Or Local Stdio)"]
+        CF["Cloudflare Quick Tunnel / MCP Stdio<br/>(TLS 1.3 / JSON-RPC 2.0)"]
     end
 
     subgraph LocalMachine["Local Developer Machine"]
@@ -48,8 +112,8 @@ flowchart TD
         end
     end
 
-    ChatGPT -->|"HTTPS REST / MCP SSE"| CF
-    CF -->|"Reverse Proxy"| Auth
+    ChatGPT -->|"HTTPS REST / MCP SSE / Stdio"| CF
+    CF -->|"Reverse Proxy / Pipe"| Auth
     Auth --> Router
     Router --> Orchestrator
     Orchestrator --> Boundary
@@ -97,9 +161,10 @@ sequenceDiagram
 
 ## Key Features
 
-- **Dual Control Interfaces**: Exposes an OpenAPI 3.1 schema for ChatGPT Custom Actions and a native MCP server (`/mcp/sse`) conforming to the 2024-11-05 specification.
+- **Dual Control Interfaces**: Exposes an OpenAPI 3.1 schema for ChatGPT Custom Actions and a native MCP server (`/mcp/sse` and `stdio`) conforming to the 2024-11-05 specification.
+- **Agensi.io Agent Skill Package**: Ships with a complete `SKILL.md` package under `skills/chatgpt-antigravity-bridge/` for 1-click installation into Claude Code, Cursor, GitHub Copilot, Windsurf, and OpenAI Codex CLI.
 - **Multi-Workspace Authorization**: Dynamically discover and manage multiple authorized project directories via `workspaces.json`. ChatGPT and Antigravity can switch between workspaces at runtime without restarting the Bridge.
-- **Dynamic Filesystem Tools**: 10 MCP tools (`list_workspaces`, `get_workspace`, `list_directory`, `read_file`, `write_file`, `create_directory`, `move_file`, `delete_file`, `search_files`, `get_file_tree`) provide direct filesystem access strictly bounded to authorized roots.
+- **Dynamic Filesystem Tools**: 12 MCP tools (`list_workspaces`, `get_workspace`, `discover_workspaces`, `refresh_workspaces`, `list_directory`, `read_file`, `write_file`, `create_directory`, `move_file`, `delete_file`, `search_files`, `get_file_tree`) provide direct filesystem access strictly bounded to authorized roots.
 - **Session Continuity**: Follow-up prompts reuse the existing Antigravity conversation session (`session_id`), allowing iterative refactoring without re-sending the whole codebase.
 - **Auto Workspace Discovery**: Automatically scans configured roots (`D:\PROJECTS`, `Documents`, etc.) to discover and register workspaces (`npm`, `python`, `rust`, etc.) based on standard markers.
 - **Smart Workspace Resolution**: Supports dynamic, instant sub-workspace routing. Requesting a task in `training/test` will resolve the base project, auto-create the `test` directory if missing, authorize it, and execute inside it—all seamlessly.
@@ -132,6 +197,13 @@ ChatGPT-Antigravity-Bridge/
 |   |-- config.py               # Pydantic settings with dynamic home path detection
 |   |-- database.py             # SQLite engine setup (WAL mode enabled)
 |   `-- main.py                 # FastAPI application factory and lifespan manager
+|-- skills/
+|   `-- chatgpt-antigravity-bridge/
+|       |-- SKILL.md            # Agensi.io Agent Skill entrypoint & prompt instructions
+|       |-- marketplace.json    # Storefront metadata, pricing ($9 tier), & compatibility
+|       `-- references/
+|           |-- client-configs.md       # MCP setup for Claude Code, Cursor, Copilot, Windsurf, Codex
+|           `-- mcp-tools-reference.md  # Full schema reference & error recovery guide
 |-- docs/
 |   |-- ARCHITECTURE.md         # System topology and component design
 |   |-- CHATGPT_SETUP.md        # Custom GPT Action & Remote MCP configuration guide
@@ -139,15 +211,17 @@ ChatGPT-Antigravity-Bridge/
 |   `-- SECURITY.md             # Threat model, RBAC scopes, and encryption
 |-- scripts/
 |   |-- gateway_manager.py      # Unified launcher with health checks and tunnel pairing
+|   |-- package_agensi_skill.py # 8-point security validator & Agensi.io .zip builder
 |   |-- test_real_gateway.py    # Local integration verification against live AgentAPI
 |   `-- test_external_e2e.py    # End-to-end test verifying remote access through tunnel
-|-- tests/                      # Automated test suite (Pytest + AsyncIO, 36 tests)
+|-- tests/                      # Automated test suite (Pytest + AsyncIO)
 |-- .env.example                # Configuration template
 |-- .gitignore                  # Ignores secrets, databases, and local binaries
 |-- CONTRIBUTING.md             # Development guidelines and PR workflow
 |-- LICENSE                     # MIT License
 |-- requirements.txt            # Python dependencies
-|-- run.py                      # Local server entrypoint
+|-- main.py                     # Cloud/container preview entrypoint (port 3000)
+|-- run.py                      # Local server entrypoint (port 8000)
 |-- run_tunnel.py               # Cloudflare quick tunnel launcher with auto-download
 |-- workspaces.json             # Authorized workspace roots configuration
 `-- START GATEWAY.bat           # Windows one-click launcher
