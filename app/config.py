@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     ANTIGRAVITY_AGENTAPI_PATH: str = Field(default_factory=_default_agentapi_path)
     ANTIGRAVITY_BRAIN_DIR: str = Field(default_factory=_default_brain_dir)
     ANTIGRAVITY_LANGUAGE_SERVER_PORT: int = 58045
+    ANTIGRAVITY_LS_ADDRESS: Optional[str] = None
+    ANTIGRAVITY_CSRF_TOKEN: Optional[str] = None
+    ANTIGRAVITY_AUTO_DISCOVER: bool = True
 
     # Rate Limiting & Timeouts
     RATE_LIMIT_DEFAULT: str = "120/minute"
@@ -68,6 +71,7 @@ class Settings(BaseSettings):
     # Workspace Authorization & Multi-Root Management
     WORKSPACES_CONFIG_FILE: str = "workspaces.json"
     AUTHORIZED_WORKSPACES: Optional[str] = None  # Comma-separated paths or JSON string from env
+    ALLOW_DRIVE_ROOTS: bool = False  # When True, permits registering full drive roots (e.g. D:\)
     RESTRICTED_SYSTEM_DIRECTORIES: List[str] = [
         "c:\\windows",
         "c:\\program files",

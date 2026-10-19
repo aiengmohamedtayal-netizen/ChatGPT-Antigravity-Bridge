@@ -368,6 +368,29 @@ async def health_check():
 
 
 # OAuth & Discovery Probes for OpenAI MCP Connector
+@app.get("/.well-known/ai-plugin.json", include_in_schema=False)
+async def ai_plugin_manifest(request: Request):
+    base_url = str(request.base_url).rstrip("/")
+    return {
+        "schema_version": "v1",
+        "name_for_human": "Antigravity Bridge",
+        "name_for_model": "antigravity_bridge",
+        "description_for_human": "Local coding agent bridge connecting ChatGPT to Google Antigravity.",
+        "description_for_model": "Plugin for controlling Google Antigravity to inspect workspaces, dispatch coding tasks, monitor task execution, and manage sessions.",
+        "auth": {
+            "type": "user_http",
+            "authorization_type": "bearer",
+        },
+        "api": {
+            "type": "openapi",
+            "url": f"{base_url}/openapi.json",
+        },
+        "logo_url": f"{base_url}/static/logo.png",
+        "contact_email": "support@example.com",
+        "legal_info_url": f"{base_url}/legal",
+    }
+
+
 @app.get("/.well-known/oauth-protected-resource", include_in_schema=False)
 @app.get("/.well-known/oauth-protected-resource/{path:path}", include_in_schema=False)
 @app.get("/mcp/sse/.well-known/oauth-protected-resource", include_in_schema=False)

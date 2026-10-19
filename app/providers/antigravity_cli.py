@@ -46,10 +46,15 @@ class AntigravityCliProvider(BaseAgentProvider):
             return f"cli_sess_{os.urandom(4).hex()}"
 
         try:
+            from app.services.antigravity_discovery import antigravity_discovery
+            env = antigravity_discovery.get_subprocess_env(workspace_path=workspace_path, cli_path=self.cli_path)
+
             # Run agentapi.bat new-conversation --title="ChatGPT Bridge" "Initialize"
             cmd = [self.cli_path, "new-conversation", "--title=ChatGPT Bridge Session", "Initialize bridge session"]
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
+                cwd=workspace_path,
+                env=env,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -108,8 +113,13 @@ class AntigravityCliProvider(BaseAgentProvider):
                 step_index=1,
             )
 
+            from app.services.antigravity_discovery import antigravity_discovery
+            env = antigravity_discovery.get_subprocess_env(workspace_path=workspace_path, cli_path=self.cli_path)
+
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
+                cwd=workspace_path,
+                env=env,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )

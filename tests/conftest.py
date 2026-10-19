@@ -42,6 +42,7 @@ def setup_test_environment():
     provider_registry.register(fast_sim)
     settings = get_settings()
     settings.DEFAULT_AGENT_PROVIDER = "simulated"
+    settings.ALLOW_DRIVE_ROOTS = False
 
 
 @pytest.fixture(autouse=True)

@@ -1,0 +1,324 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ChatGPT \u2194 Antigravity Access Gateway API",
+    "description": "Secure programmatic gateway giving ChatGPT controlled access to inspect workspaces, manage agent sessions, and execute tasks with Google Antigravity.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://efficiently-pre-festival-cattle.trycloudflare.com"
+    }
+  ],
+  "paths": {
+    "/api/v1/projects": {
+      "get": {
+        "operationId": "listProjects",
+        "summary": "List authorized Antigravity projects",
+        "description": "Returns list of explicitly authorized project workspaces.",
+        "responses": {
+          "200": {
+            "description": "List of authorized projects"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}": {
+      "get": {
+        "operationId": "getProject",
+        "summary": "Get project details & metadata",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project metadata"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/context": {
+      "get": {
+        "operationId": "getProjectContext",
+        "summary": "Inspect project context and architecture guidelines",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deep project context"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{project_id}/sessions": {
+      "get": {
+        "operationId": "listAgentSessions",
+        "summary": "List active agent sessions for a project",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of sessions"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createAgentSession",
+        "summary": "Create a new Antigravity Agent session for a project",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "New session created"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{session_id}": {
+      "get": {
+        "operationId": "getAgentSession",
+        "summary": "Get session details and task history",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session details"
+          }
+        }
+      }
+    },
+    "/api/v1/sessions/{session_id}/messages": {
+      "post": {
+        "operationId": "sendMessageToSession",
+        "summary": "Send instruction directly to existing Antigravity session",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "prompt"
+                ],
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "description": "Instruction for Antigravity Agent"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "normal",
+                      "high",
+                      "urgent"
+                    ],
+                    "default": "normal"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Instruction dispatched"
+          }
+        }
+      }
+    },
+    "/api/v1/tasks": {
+      "post": {
+        "operationId": "sendAgentCommand",
+        "summary": "Primary Tool: Dispatch command/task to Antigravity Agent",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "project_id",
+                  "prompt"
+                ],
+                "properties": {
+                  "project_id": {
+                    "type": "string",
+                    "description": "Target project workspace ID"
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "description": "Coding instruction for Antigravity"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "enum": [
+                      "low",
+                      "normal",
+                      "high",
+                      "urgent"
+                    ],
+                    "default": "normal"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Task queued & dispatched"
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{task_id}": {
+      "get": {
+        "operationId": "getTaskStatus",
+        "summary": "Check status, summary, and changed files of a task",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task status & execution output"
+          }
+        }
+      }
+    },
+    "/api/v1/tasks/{task_id}/continue": {
+      "post": {
+        "operationId": "continueSession",
+        "summary": "Continue previous task in the same Antigravity session",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "prompt"
+                ],
+                "properties": {
+                  "prompt": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Continuation task created"
+          }
+        }
+      }
+    },
+    "/api/v1/system/status": {
+      "get": {
+        "operationId": "getSystemStatus",
+        "summary": "Check Gateway and Antigravity Agent connectivity",
+        "responses": {
+          "200": {
+            "description": "Gateway health"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "API Key (agb_live_...)"
+      }
+    }
+  },
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ]
+}

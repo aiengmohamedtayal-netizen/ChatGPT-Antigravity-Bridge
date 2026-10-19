@@ -1,0 +1,18 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Antigravity Bridge",
+  "name_for_model": "antigravity_bridge",
+  "description_for_human": "Local coding agent bridge connecting ChatGPT to Google Antigravity.",
+  "description_for_model": "Plugin for controlling Google Antigravity to inspect workspaces, dispatch coding tasks, monitor task execution, and manage sessions.",
+  "auth": {
+    "type": "user_http",
+    "authorization_type": "bearer"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://efficiently-pre-festival-cattle.trycloudflare.com/api/v1/chatgpt/openapi.json"
+  },
+  "logo_url": "https://efficiently-pre-festival-cattle.trycloudflare.com/static/logo.png",
+  "contact_email": "support@example.com",
+  "legal_info_url": "https://efficiently-pre-festival-cattle.trycloudflare.com/legal"
+}

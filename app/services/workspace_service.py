@@ -4,12 +4,14 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+import shutil
+import subprocess
+from typing import Any, Dict, List, Optional, Tuple
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.core.errors import AuthorizationError, NotFoundError
+from app.core.errors import AuthorizationError, NotFoundError, BadRequestError
 
 logger = logging.getLogger(__name__)
 
@@ -42,21 +44,42 @@ class WorkspaceService:
         except Exception:
             return ""
 
-    def is_restricted_path(self, path: str) -> bool:
-        """Verify that path is not an entire drive root or sensitive system directory."""
+    def is_system_directory(self, path: str) -> bool:
+        """Check if path is inside a sensitive system directory (e.g. C:\\Windows, C:\\Program Files, /etc)."""
         canon = self.canonicalize(path).lower()
         if not canon:
             return True
 
-        # Check for bare drive roots like C:\ or D:\
-        norm = os.path.normpath(canon)
-        if norm.endswith(":") or norm.endswith(":\\") or norm == "/" or norm == "\\":
-            return True
-
-        # Check against restricted system directories
         for restricted in self.settings.RESTRICTED_SYSTEM_DIRECTORIES:
             r_canon = self.canonicalize(restricted).lower()
             if r_canon and (canon == r_canon or canon.startswith(r_canon + os.sep)):
+                return True
+
+        if os.name == "nt":
+            win_dirs = [
+                os.environ.get("SystemRoot"),
+                os.environ.get("ProgramFiles"),
+                os.environ.get("ProgramFiles(x86)"),
+                os.environ.get("ProgramData"),
+            ]
+            for w_dir in win_dirs:
+                if w_dir:
+                    w_canon = self.canonicalize(w_dir).lower()
+                    if w_canon and (canon == w_canon or canon.startswith(w_canon + os.sep)):
+                        return True
+
+        return False
+
+    def is_restricted_path(self, path: str) -> bool:
+        """Verify that path is not an entire drive root or sensitive system directory."""
+        if self.is_system_directory(path):
+            return True
+
+        # Check for bare drive roots like C:\ or D:\ unless ALLOW_DRIVE_ROOTS is enabled
+        if not getattr(self.settings, "ALLOW_DRIVE_ROOTS", False):
+            canon = self.canonicalize(path).lower()
+            norm = os.path.normpath(canon)
+            if norm.endswith(":") or norm.endswith(":\\") or norm == "/" or norm == "\\":
                 return True
 
         return False
@@ -153,7 +176,7 @@ class WorkspaceService:
             w.exists_on_disk = bool(w.path and os.path.isdir(w.path))
         return workspaces
 
-    def get_workspace(self, workspace_id_or_path: str) -> Optional[AuthorizedWorkspace]:
+    def get_workspace(self, workspace_id_or_path: str, auto_provision: bool = True) -> Optional[AuthorizedWorkspace]:
         """Resolve an authorized workspace by its ID or canonical path or name."""
         if not workspace_id_or_path:
             return None
@@ -250,7 +273,341 @@ class WorkspaceService:
                     save_to_config=True
                 )
 
+        # Autonomous Provisioning Fallback (if requested path falls inside an authorized root)
+        if auto_provision:
+            provisioned = self.auto_provision_workspace(workspace_id_or_path)
+            if provisioned:
+                return provisioned
+
         return None
+
+    def auto_provision_workspace(
+        self,
+        path_or_subpath: str,
+        name: Optional[str] = None,
+        description: str = "",
+        instructions: str = "",
+        auto_create_dir: bool = True,
+    ) -> Optional[AuthorizedWorkspace]:
+        """Autonomously provision a workspace if the target path falls inside an authorized root.
+        Creates directory on the fly (mkdir -p), registers in workspaces.json, and returns the workspace.
+        """
+        if not path_or_subpath or not isinstance(path_or_subpath, str):
+            return None
+
+        # Traversal check
+        if ".." in path_or_subpath.replace("\\", "/").split("/"):
+            return None
+
+        clean = path_or_subpath.strip()
+
+        # Only auto-provision if target looks like a path (is absolute, or has path separators, or drive prefix)
+        is_path_expression = os.path.isabs(clean) or ("/" in clean) or ("\\" in clean) or (len(clean) >= 2 and clean[1] == ":")
+        if not is_path_expression:
+            return None
+
+        # Candidate canonical paths
+        candidate_paths: List[str] = []
+        if os.path.isabs(clean) or (len(clean) >= 2 and clean[1] == ":"):
+            c = self.canonicalize(clean)
+            if c:
+                candidate_paths.append(c)
+        else:
+            # Check relative to all enabled authorized workspace roots
+            for ws in self.list_authorized_workspaces(enabled_only=True):
+                c = self.canonicalize(os.path.join(ws.path, clean.lstrip("/\\")))
+                if c and c not in candidate_paths:
+                    candidate_paths.append(c)
+
+        for canon_path in candidate_paths:
+            if not canon_path:
+                continue
+
+            # Check restricted system directory (e.g. C:\\Windows, C:\\Program Files)
+            if self.is_restricted_path(canon_path):
+                continue
+
+            # Must fall strictly within an authorized root
+            is_auth, matching_ws, _ = self.match_path_to_workspace(canon_path)
+            if not is_auth or not matching_ws:
+                continue
+
+            # If it's the root itself, return the matching root
+            if canon_path.lower() == self.canonicalize(matching_ws.path).lower():
+                return matching_ws
+
+            # Check if already registered
+            for ws in self._workspaces.values():
+                if self.canonicalize(ws.path).lower() == canon_path.lower():
+                    return ws
+
+            # Ensure directory exists on disk (mkdir -p semantics)
+            if auto_create_dir:
+                try:
+                    os.makedirs(canon_path, exist_ok=True)
+                except Exception as e:
+                    logger.error("Failed to auto-create directory '%s': %s", canon_path, e)
+                    continue
+
+            base_name = os.path.basename(canon_path).replace(" ", "_").lower()
+            if not base_name:
+                base_name = "workspace"
+            ws_id = f"proj_{base_name}"
+            if ws_id in self._workspaces:
+                ws_id = f"proj_{base_name}_{len(self._workspaces) + 1}"
+
+            ws_name = name or os.path.basename(canon_path) or ws_id
+            desc = description or f"Auto-provisioned workspace under {matching_ws.name}"
+
+            logger.info("Auto-provisioned workspace: id='%s', name='%s', path='%s'", ws_id, ws_name, canon_path)
+
+            return self.register_workspace(
+                path=canon_path,
+                name=ws_name,
+                workspace_id=ws_id,
+                description=desc,
+                instructions=instructions,
+                enabled=True,
+                save_to_config=True,
+            )
+
+        return None
+
+    def init_project_workspace(
+        self,
+        path: str,
+        name: Optional[str] = None,
+        description: str = "",
+        instructions: str = "",
+        scaffold: str = "git",
+        init_git: bool = True,
+        db: Optional[Session] = None,
+    ) -> Dict[str, Any]:
+        """Dedicated tool logic: Autonomously create a project directory, initialize scaffolds,
+        and register it as an active workspace in one call.
+        """
+        if not path or not isinstance(path, str):
+            raise BadRequestError("Path must be a non-empty string.")
+
+        if ".." in path.replace("\\", "/").split("/"):
+            raise AuthorizationError("Path traversal ('..') is strictly prohibited.")
+
+        clean = path.strip()
+        if os.path.isabs(clean) or (len(clean) >= 2 and clean[1] == ":"):
+            canon_path = self.canonicalize(clean)
+        else:
+            roots = self.list_authorized_workspaces(enabled_only=True)
+            if not roots:
+                raise NotFoundError("No authorized workspace roots available.")
+            canon_path = self.canonicalize(os.path.join(roots[0].path, clean.lstrip("/\\")))
+
+        if not canon_path:
+            raise BadRequestError(f"Invalid path: '{path}'.")
+
+        # Security check 1: Restricted system directory
+        if self.is_restricted_path(canon_path):
+            raise AuthorizationError(f"Access denied: '{path}' is inside a restricted system directory.")
+
+        # Security check 2: Must fall within an authorized root
+        is_auth, matching_ws, _ = self.match_path_to_workspace(canon_path)
+        if not is_auth or not matching_ws:
+            raise AuthorizationError(f"Access denied: '{path}' is outside the authorized workspace roots.")
+
+        # 1. Create directory on disk (mkdir -p)
+        try:
+            os.makedirs(canon_path, exist_ok=True)
+        except PermissionError:
+            raise AuthorizationError(f"OS permission denied creating directory '{canon_path}'.")
+
+        created_files: List[str] = []
+
+        # 2. Git Initialization
+        git_status = "disabled"
+        if init_git:
+            try:
+                git_dir = os.path.join(canon_path, ".git")
+                if not os.path.exists(git_dir):
+                    if shutil.which("git"):
+                        run_res = subprocess.run(
+                            ["git", "init"],
+                            cwd=canon_path,
+                            capture_output=True,
+                            text=True,
+                            timeout=10,
+                        )
+                        if run_res.returncode == 0:
+                            git_status = "initialized"
+                            created_files.append(".git/")
+                        else:
+                            git_status = f"git init failed: {run_res.stderr.strip()}"
+                    else:
+                        git_status = "git binary not found on PATH"
+                else:
+                    git_status = "already a git repository"
+            except Exception as e:
+                git_status = f"git init error: {str(e)}"
+
+        # 3. Scaffolding Templates
+        project_name = name or os.path.basename(canon_path) or "New Project"
+        scaffold_type = (scaffold or "git").lower()
+
+        # .gitignore
+        if scaffold_type in ("git", "python", "node", "web"):
+            gitignore_path = os.path.join(canon_path, ".gitignore")
+            if not os.path.exists(gitignore_path):
+                gitignore_content = (
+                    "# Environments & Dependencies\n"
+                    ".env\n"
+                    ".env.local\n"
+                    "node_modules/\n"
+                    "__pycache__/\n"
+                    "*.py[cod]\n"
+                    "*.pyo\n"
+                    ".venv/\n"
+                    "env/\n"
+                    "dist/\n"
+                    "build/\n"
+                    ".DS_Store\n"
+                    "Thumbs.db\n"
+                )
+                with open(gitignore_path, "w", encoding="utf-8") as f:
+                    f.write(gitignore_content)
+                created_files.append(".gitignore")
+
+        # README.md
+        readme_path = os.path.join(canon_path, "README.md")
+        if not os.path.exists(readme_path):
+            readme_content = (
+                f"# {project_name}\n\n"
+                f"{description or 'Project workspace initialized via ChatGPT x Antigravity Bridge.'}\n\n"
+                "## Overview\n"
+                "This project is managed autonomously with ChatGPT and Google Antigravity.\n"
+            )
+            with open(readme_path, "w", encoding="utf-8") as f:
+                f.write(readme_content)
+            created_files.append("README.md")
+
+        # AGENTS.md (if instructions provided)
+        if instructions:
+            agents_md_path = os.path.join(canon_path, "AGENTS.md")
+            if not os.path.exists(agents_md_path):
+                with open(agents_md_path, "w", encoding="utf-8") as f:
+                    f.write(f"# Agent Guidelines for {project_name}\n\n{instructions}\n")
+                created_files.append("AGENTS.md")
+
+        # Scaffold specific files
+        if scaffold_type == "python":
+            pyproject_path = os.path.join(canon_path, "pyproject.toml")
+            if not os.path.exists(pyproject_path):
+                pkg_name = project_name.replace("-", "_").replace(" ", "_").lower()
+                pyproject_content = (
+                    "[project]\n"
+                    f'name = "{pkg_name}"\n'
+                    'version = "0.1.0"\n'
+                    f'description = "{description or project_name}"\n'
+                    'readme = "README.md"\n'
+                    'requires-python = ">=3.10"\n'
+                    "dependencies = []\n"
+                )
+                with open(pyproject_path, "w", encoding="utf-8") as f:
+                    f.write(pyproject_content)
+                created_files.append("pyproject.toml")
+
+            main_py_path = os.path.join(canon_path, "main.py")
+            if not os.path.exists(main_py_path):
+                with open(main_py_path, "w", encoding="utf-8") as f:
+                    f.write(f'def main():\n    print("Hello from {project_name}!")\n\nif __name__ == "__main__":\n    main()\n')
+                created_files.append("main.py")
+
+        elif scaffold_type == "node":
+            pkg_json_path = os.path.join(canon_path, "package.json")
+            if not os.path.exists(pkg_json_path):
+                pkg_name = project_name.replace(" ", "-").lower()
+                pkg_content = json.dumps({
+                    "name": pkg_name,
+                    "version": "1.0.0",
+                    "description": description or project_name,
+                    "main": "src/index.js",
+                    "scripts": {
+                        "start": "node src/index.js"
+                    },
+                    "private": True,
+                }, indent=2)
+                with open(pkg_json_path, "w", encoding="utf-8") as f:
+                    f.write(pkg_content)
+                created_files.append("package.json")
+
+            src_dir = os.path.join(canon_path, "src")
+            os.makedirs(src_dir, exist_ok=True)
+            index_js_path = os.path.join(src_dir, "index.js")
+            if not os.path.exists(index_js_path):
+                with open(index_js_path, "w", encoding="utf-8") as f:
+                    f.write(f'console.log("Hello from {project_name}!");\n')
+                created_files.append("src/index.js")
+
+        elif scaffold_type == "web":
+            html_path = os.path.join(canon_path, "index.html")
+            if not os.path.exists(html_path):
+                html_content = (
+                    "<!DOCTYPE html>\n"
+                    '<html lang="en">\n<head>\n'
+                    '  <meta charset="UTF-8">\n'
+                    f"  <title>{project_name}</title>\n"
+                    '  <link rel="stylesheet" href="style.css">\n'
+                    "</head>\n<body>\n"
+                    f"  <h1>Welcome to {project_name}</h1>\n"
+                    '  <script src="app.js"></script>\n'
+                    "</body>\n</html>\n"
+                )
+                with open(html_path, "w", encoding="utf-8") as f:
+                    f.write(html_content)
+                created_files.append("index.html")
+
+            css_path = os.path.join(canon_path, "style.css")
+            if not os.path.exists(css_path):
+                with open(css_path, "w", encoding="utf-8") as f:
+                    f.write("body {\n  font-family: system-ui, sans-serif;\n  margin: 2rem;\n}\n")
+                created_files.append("style.css")
+
+            js_path = os.path.join(canon_path, "app.js")
+            if not os.path.exists(js_path):
+                with open(js_path, "w", encoding="utf-8") as f:
+                    f.write(f'console.log("{project_name} web app loaded.");\n')
+                created_files.append("app.js")
+
+        # 4. Register workspace
+        base_id = os.path.basename(canon_path).replace(" ", "_").lower()
+        ws_id = f"proj_{base_id}"
+        if ws_id in self._workspaces:
+            if self.canonicalize(self._workspaces[ws_id].path).lower() != canon_path.lower():
+                ws_id = f"proj_{base_id}_{len(self._workspaces) + 1}"
+
+        ws = self.register_workspace(
+            path=canon_path,
+            name=project_name,
+            workspace_id=ws_id,
+            description=description or f"Project workspace initialized under {matching_ws.name}",
+            instructions=instructions,
+            enabled=True,
+            save_to_config=True,
+        )
+
+        # 5. Sync with database
+        if db is not None:
+            self.sync_with_db(db)
+
+        return {
+            "success": True,
+            "workspace_id": ws.id,
+            "name": ws.name,
+            "path": ws.path,
+            "root_workspace": matching_ws.name,
+            "scaffold": scaffold_type,
+            "git_status": git_status,
+            "created_files": created_files,
+            "status": "ready",
+            "message": f"Workspace '{ws.name}' ({ws.id}) successfully initialized and ready for Antigravity Agent sessions.",
+        }
 
     def discover_and_register_all(self) -> List[AuthorizedWorkspace]:
         """Runs discovery and automatically registers all safe projects found."""

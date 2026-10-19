@@ -1,6 +1,38 @@
 {
   "authorized_workspaces": [
     {
+      "id": "drive_d",
+      "name": "D: Drive (All Projects & Folders)",
+      "path": "D:\\",
+      "enabled": true,
+      "description": "Full access to all folders, projects, and repositories across the entire D: drive",
+      "instructions": ""
+    },
+    {
+      "id": "drive_c_user",
+      "name": "User Profile (C: Drive)",
+      "path": "C:\\Users\\Click Labtop",
+      "enabled": true,
+      "description": "Full access to Desktop, Downloads, Documents, and user project directories on C: drive",
+      "instructions": ""
+    },
+    {
+      "id": "proj_bridge",
+      "name": "ChatGPT Bridge (Main)",
+      "path": "D:\\ChatGPT-Antigravity-Bridge-main",
+      "enabled": true,
+      "description": "ChatGPT x Antigravity Bridge gateway and orchestration engine",
+      "instructions": ""
+    },
+    {
+      "id": "proj_rezan",
+      "name": "REZAN (Full-stack Project)",
+      "path": "D:\\REZAN",
+      "enabled": true,
+      "description": "REZAN Luxury Arabic Fragrances & E-commerce Platform",
+      "instructions": ""
+    },
+    {
       "id": "proj_tool",
       "name": "ChatGPT Bridge (Tool)",
       "path": "D:\\PROJECTS\\tool",
@@ -62,6 +94,110 @@
       "path": "D:\\PROJECTS\\training\\e2e_test_002426",
       "enabled": true,
       "description": "Auto-resolved sub-workspace of Training Workspace",
+      "instructions": ""
+    },
+    {
+      "id": "proj_joyful-kepler",
+      "name": "joyful-kepler",
+      "path": "C:\\Users\\Click Labtop\\Documents\\antigravity\\joyful-kepler",
+      "enabled": true,
+      "description": "Auto-discovered unknown project",
+      "instructions": ""
+    },
+    {
+      "id": "proj_google-fonts",
+      "name": "google-fonts",
+      "path": "D:\\PROJECTS\\google-fonts",
+      "enabled": true,
+      "description": "Auto-discovered unknown project",
+      "instructions": ""
+    },
+    {
+      "id": "proj_hospital_system",
+      "name": "hospital system",
+      "path": "D:\\PROJECTS\\hospital system\\hospital system",
+      "enabled": true,
+      "description": "Auto-discovered unknown project",
+      "instructions": ""
+    },
+    {
+      "id": "proj_hospital_system_-_final",
+      "name": "hospital system - Final",
+      "path": "D:\\PROJECTS\\hospital system\\hospital system - Final",
+      "enabled": true,
+      "description": "Auto-discovered unknown project",
+      "instructions": ""
+    },
+    {
+      "id": "proj_mas",
+      "name": "mas",
+      "path": "D:\\PROJECTS\\mas",
+      "enabled": true,
+      "description": "Auto-discovered unknown project",
+      "instructions": ""
+    },
+    {
+      "id": "proj_amoag",
+      "name": "amoag",
+      "path": "D:\\PROJECTS\\New folder\\amoag",
+      "enabled": true,
+      "description": "Auto-discovered nextjs project",
+      "instructions": ""
+    },
+    {
+      "id": "proj_music-ai-agent",
+      "name": "music-ai-agent",
+      "path": "D:\\PROJECTS\\New folder\\music-ai-agent",
+      "enabled": true,
+      "description": "Auto-discovered unknown project",
+      "instructions": ""
+    },
+    {
+      "id": "proj_quiz-source-code",
+      "name": "quiz-source-code",
+      "path": "D:\\PROJECTS\\quiz-source-code",
+      "enabled": true,
+      "description": "Auto-discovered vite project",
+      "instructions": ""
+    },
+    {
+      "id": "proj_shopify-storefront",
+      "name": "shopify-storefront",
+      "path": "D:\\PROJECTS\\shopify-storefront",
+      "enabled": true,
+      "description": "Auto-discovered vite project",
+      "instructions": ""
+    },
+    {
+      "id": "proj_tempo-strike",
+      "name": "tempo-strike",
+      "path": "D:\\PROJECTS\\tempo-strike",
+      "enabled": true,
+      "description": "Auto-discovered vite project",
+      "instructions": ""
+    },
+    {
+      "id": "proj_egypt-travel",
+      "name": "egypt-travel",
+      "path": "D:\\PROJECTS\\training\\egypt-travel",
+      "enabled": true,
+      "description": "Auto-discovered nextjs project",
+      "instructions": ""
+    },
+    {
+      "id": "proj_test",
+      "name": "test",
+      "path": "D:\\PROJECTS\\training\\test",
+      "enabled": true,
+      "description": "Auto-discovered vite project",
+      "instructions": ""
+    },
+    {
+      "id": "proj_frontend_nlp_project",
+      "name": "frontend NLP project",
+      "path": "D:\\PROJECTS\\\u062a\u0637\u0628\u064a\u0642\\project\\frontend NLP project",
+      "enabled": true,
+      "description": "Auto-discovered unknown project",
       "instructions": ""
     }
   ]

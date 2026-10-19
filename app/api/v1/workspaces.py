@@ -22,6 +22,8 @@ from app.schemas.workspace import (
     FileDeleteRequest,
     SearchResponse,
     FileTreeResponse,
+    WorkspaceInitRequest,
+    WorkspaceInitResponse,
 )
 
 router = APIRouter(prefix="/workspaces", tags=["Workspaces & Filesystem"])
@@ -66,6 +68,35 @@ async def refresh_workspaces(
     """Reload workspaces configuration."""
     workspace_service.reload()
     return {"status": "success", "workspaces": len(workspace_service.list_authorized_workspaces())}
+
+
+@router.post("/init", response_model=WorkspaceInitResponse, status_code=status.HTTP_201_CREATED, summary="Initialize and authorize new project workspace")
+async def init_workspace(
+    payload: WorkspaceInitRequest,
+    request: Request,
+    api_key: ApiKey = Depends(require_scopes([ApiScope.PROJECTS_WRITE])),
+    db: Session = Depends(get_db),
+):
+    """Autonomously create directory, generate scaffolds, and authorize workspace in one call."""
+    res = workspace_service.init_project_workspace(
+        path=payload.path,
+        name=payload.name,
+        description=payload.description or "",
+        instructions=payload.instructions or "",
+        scaffold=payload.scaffold or "git",
+        init_git=payload.init_git,
+        db=db,
+    )
+    record_audit_event(
+        db=db,
+        actor=api_key.name,
+        action="WORKSPACE_INIT",
+        resource_type="workspace",
+        resource_id=res["workspace_id"],
+        ip_address=get_client_ip(request),
+        details={"path": res["path"], "name": res["name"], "scaffold": res["scaffold"]},
+    )
+    return res
 
 
 @router.post("", response_model=WorkspaceDetailResponse, status_code=status.HTTP_201_CREATED, summary="Authorize new workspace root")

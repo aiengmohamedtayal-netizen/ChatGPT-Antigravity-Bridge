@@ -74,6 +74,13 @@ async def create_new_session(
 ):
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
+        from app.services.workspace_service import workspace_service
+        ws = workspace_service.get_workspace(project_id, auto_provision=True)
+        if ws:
+            workspace_service.sync_with_db(db)
+            project = db.query(Project).filter((Project.id == ws.id) | (Project.workspace_path == ws.path)).first()
+
+    if not project:
         raise NotFoundError(f"Project '{project_id}' not found.")
 
     provider = provider_registry.get_provider()

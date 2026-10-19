@@ -108,3 +108,25 @@ class FileTreeResponse(BaseModel):
     max_depth: int
     total_nodes: int
     tree: Dict[str, Any]
+
+
+class WorkspaceInitRequest(BaseModel):
+    path: str = Field(..., description="Target project directory path (must fall inside an authorized root)")
+    name: Optional[str] = Field(None, description="Human-readable project name")
+    description: Optional[str] = Field("", description="Project description")
+    instructions: Optional[str] = Field("", description="Agent guidelines/instructions (AGENTS.md)")
+    scaffold: Optional[str] = Field("git", description="Scaffold template: 'empty', 'git', 'python', 'node', 'web'")
+    init_git: bool = Field(True, description="Initialize a local git repository if available")
+
+
+class WorkspaceInitResponse(BaseModel):
+    success: bool
+    workspace_id: str
+    name: str
+    path: str
+    root_workspace: str
+    scaffold: str
+    git_status: str
+    created_files: List[str]
+    status: str
+    message: str

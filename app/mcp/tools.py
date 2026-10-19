@@ -263,6 +263,86 @@ WORKSPACE_FILESYSTEM_TOOLS: List[McpTool] = [
         description="Reload workspaces configuration from disk.",
         inputSchema=McpToolInputSchema(properties={}),
     ),
+    McpTool(
+        name="create_workspace",
+        description=(
+            "Autonomously create and initialize a brand-new project directory and workspace within an authorized root "
+            "(e.g. D:\\ or C:\\Users\\Click Labtop). Automatically runs mkdir -p, optionally initializes git and project "
+            "scaffolding (python, node, web, git), and registers it as an active workspace ready for agent sessions."
+        ),
+        inputSchema=McpToolInputSchema(
+            properties={
+                "path": {
+                    "type": "string",
+                    "description": "Target project directory path (absolute or relative within authorized root, e.g. 'D:\\my_app' or 'projects/web-api')",
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Optional human-readable project name (defaults to folder name)",
+                },
+                "description": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Optional project description",
+                },
+                "instructions": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Optional guidelines/instructions for the agent (stored in AGENTS.md)",
+                },
+                "scaffold": {
+                    "type": "string",
+                    "enum": ["empty", "git", "python", "node", "web"],
+                    "default": "git",
+                    "description": "Project template/scaffolding to generate",
+                },
+                "init_git": {
+                    "type": "boolean",
+                    "default": True,
+                    "description": "Initialize a git repository in the workspace",
+                },
+            },
+            required=["path"],
+        ),
+    ),
+    McpTool(
+        name="init_project",
+        description="Alias for create_workspace: Autonomously create, scaffold, and register a new project workspace.",
+        inputSchema=McpToolInputSchema(
+            properties={
+                "path": {
+                    "type": "string",
+                    "description": "Target project directory path (e.g. 'D:\\my_app' or 'my_project')",
+                },
+                "name": {
+                    "type": "string",
+                    "description": "Optional project name",
+                },
+                "description": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Optional project description",
+                },
+                "instructions": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Optional agent instructions",
+                },
+                "scaffold": {
+                    "type": "string",
+                    "enum": ["empty", "git", "python", "node", "web"],
+                    "default": "git",
+                    "description": "Project template/scaffolding to generate",
+                },
+                "init_git": {
+                    "type": "boolean",
+                    "default": True,
+                    "description": "Initialize a git repository in the workspace",
+                },
+            },
+            required=["path"],
+        ),
+    ),
 ]
 
 # =====================================================================
@@ -468,7 +548,7 @@ def _resolve_project(target_id: str, db: Session) -> Optional[Project]:
     if proj:
         return proj
 
-    ws = workspace_service.get_workspace(target_id)
+    ws = workspace_service.get_workspace(target_id, auto_provision=True)
     if ws:
         workspace_service.sync_with_db(db)
         proj = db.query(Project).filter(Project.id == ws.id).first()
@@ -481,7 +561,25 @@ def _resolve_project(target_id: str, db: Session) -> Optional[Project]:
 
 def _execute_sync_tool_impl(name: str, arguments: Dict[str, Any], db: Session) -> Optional[McpToolResult]:
     """Execute purely synchronous filesystem and DB-backed MCP tools inside a worker thread."""
-    if name == "list_workspaces":
+    if name in ("create_workspace", "init_project"):
+        path = arguments.get("path", "")
+        name_arg = arguments.get("name")
+        description = arguments.get("description", "")
+        instructions = arguments.get("instructions", "")
+        scaffold = arguments.get("scaffold", "git")
+        init_git = arguments.get("init_git", True)
+        res = workspace_service.init_project_workspace(
+            path=path,
+            name=name_arg,
+            description=description,
+            instructions=instructions,
+            scaffold=scaffold,
+            init_git=init_git,
+            db=db,
+        )
+        return McpToolResult(content=[McpContentItem(text=json.dumps(res, indent=2))])
+
+    elif name == "list_workspaces":
         enabled_only = arguments.get("enabled_only", True)
         res = fs_service.list_workspaces(enabled_only=enabled_only)
         return McpToolResult(content=[McpContentItem(text=json.dumps(res, indent=2))])
@@ -694,6 +792,7 @@ def _execute_sync_tool_impl(name: str, arguments: Dict[str, Any], db: Session) -
                         "session_id": session_id,
                         "project_id": tasks[0].project_id,
                         "task_count": len(tasks),
+                        "total_tasks": len(tasks),
                         "history": history,
                     }, indent=2)
                 )
@@ -757,7 +856,7 @@ async def _dispatch_mcp_tool(name: str, arguments: Dict[str, Any], db: Session) 
 
     # 2. Async tools that coordinate with providers or orchestrator
     if name == "create_agent_session":
-        proj_id = arguments.get("project_id") or arguments.get("workspace_id", "")
+        proj_id = arguments.get("project_id") or arguments.get("workspace_id") or arguments.get("workspace_path") or arguments.get("path", "")
         title = arguments.get("title")
         project = await asyncio.to_thread(_resolve_project, proj_id, db)
         if not project:
@@ -792,7 +891,7 @@ async def _dispatch_mcp_tool(name: str, arguments: Dict[str, Any], db: Session) 
         )
 
     elif name == "send_agent_command":
-        proj_id = arguments.get("project_id") or arguments.get("workspace_id", "")
+        proj_id = arguments.get("project_id") or arguments.get("workspace_id") or arguments.get("workspace_path") or arguments.get("path", "")
         prompt = arguments.get("prompt", "")
         session_id = arguments.get("session_id")
         priority = arguments.get("priority", TaskPriority.NORMAL)

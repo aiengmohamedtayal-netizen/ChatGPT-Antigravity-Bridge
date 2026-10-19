@@ -57,7 +57,7 @@ class WorkspaceBoundaryGuard:
 
         # 1. Specific workspace specified
         if workspace_id_or_root:
-            ws = workspace_service.get_workspace(workspace_id_or_root)
+            ws = workspace_service.get_workspace(workspace_id_or_root, auto_provision=False)
             raw_root = ws.path if ws else workspace_id_or_root
             canonical_root = cls.canonicalize(raw_root)
 
@@ -74,11 +74,17 @@ class WorkspaceBoundaryGuard:
             if not canonical_target or not cls.is_containment_valid(canonical_target, canonical_root):
                 raise AuthorizationError(cls.ERROR_ACCESS_DENIED)
 
+            if workspace_service.is_system_directory(canonical_target):
+                raise AuthorizationError(cls.ERROR_ACCESS_DENIED)
+
             return canonical_target, canonical_root
 
         # 2. No specific workspace: check if it falls within ANY authorized workspace
         canonical_target = cls.canonicalize(target_path)
         if not canonical_target:
+            raise AuthorizationError(cls.ERROR_ACCESS_DENIED)
+
+        if workspace_service.is_system_directory(canonical_target):
             raise AuthorizationError(cls.ERROR_ACCESS_DENIED)
 
         for ws in workspace_service.list_authorized_workspaces(enabled_only=True):

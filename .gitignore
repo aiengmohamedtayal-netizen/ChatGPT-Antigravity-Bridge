@@ -46,6 +46,7 @@ bin/
 # IDE & Editor
 .vscode/
 .idea/
+.antigravity/
 *.swp
 *.swo
 

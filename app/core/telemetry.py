@@ -5,8 +5,11 @@ from datetime import datetime, timezone
 import json
 import logging
 import os
-import resource
 import sys
+try:
+    import resource
+except ImportError:
+    resource = None
 import threading
 import time
 from typing import Any, Dict, Optional
@@ -79,7 +82,7 @@ def configure_structured_logging(level: int = logging.INFO, json_output: bool = 
 
 
 def get_process_memory_mb() -> Dict[str, float]:
-    """Read current process RSS memory usage in MB using Linux /proc or resource module."""
+    """Read current process RSS memory usage in MB using Linux /proc, Windows psapi, or resource module."""
     rss_mb = 0.0
     try:
         statm_path = "/proc/self/statm"
@@ -90,7 +93,33 @@ def get_process_memory_mb() -> Dict[str, float]:
                     page_size = os.sysconf("SC_PAGE_SIZE")
                     rss_bytes = int(parts[1]) * page_size
                     rss_mb = round(rss_bytes / (1024 * 1024), 2)
-        if rss_mb == 0.0:
+        elif sys.platform == "win32":
+            import ctypes
+            from ctypes import wintypes
+
+            class PROCESS_MEMORY_COUNTERS(ctypes.Structure):
+                _fields_ = [
+                    ("cb", wintypes.DWORD),
+                    ("PageFaultCount", wintypes.DWORD),
+                    ("PeakWorkingSetSize", ctypes.c_size_t),
+                    ("WorkingSetSize", ctypes.c_size_t),
+                    ("QuotaPeakPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaPeakNonPagedPoolUsage", ctypes.c_size_t),
+                    ("QuotaNonPagedPoolUsage", ctypes.c_size_t),
+                    ("PagefileUsage", ctypes.c_size_t),
+                    ("PeakPagefileUsage", ctypes.c_size_t),
+                ]
+
+            psapi = ctypes.windll.psapi
+            kernel32 = ctypes.windll.kernel32
+            psapi.GetProcessMemoryInfo.argtypes = [wintypes.HANDLE, ctypes.POINTER(PROCESS_MEMORY_COUNTERS), wintypes.DWORD]
+            psapi.GetProcessMemoryInfo.restype = wintypes.BOOL
+            pmc = PROCESS_MEMORY_COUNTERS()
+            pmc.cb = ctypes.sizeof(PROCESS_MEMORY_COUNTERS)
+            if psapi.GetProcessMemoryInfo(kernel32.GetCurrentProcess(), ctypes.byref(pmc), pmc.cb):
+                rss_mb = round(pmc.WorkingSetSize / (1024 * 1024), 2)
+        elif resource is not None:
             usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
             # On macOS ru_maxrss is bytes; on Linux it is kilobytes
             divisor = (1024 * 1024) if sys.platform == "darwin" else 1024

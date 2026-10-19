@@ -41,19 +41,22 @@ class AntigravityRealAgentProvider(BaseAgentProvider):
 
         t0 = time.perf_counter()
         try:
-            # Query metadata of a known system check
-            proc = await asyncio.create_subprocess_exec(
-                self.cli_path,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            await proc.communicate()
+            from app.services.antigravity_discovery import antigravity_discovery
+            addr, token = antigravity_discovery.resolve_credentials(cli_path=self.cli_path)
+            if not addr:
+                return {
+                    "status": "disconnected",
+                    "message": "Antigravity Language Server is not running or unreachable.",
+                    "latency_ms": 0.0,
+                    "cli_path": self.cli_path,
+                }
             latency = round((time.perf_counter() - t0) * 1000, 2)
             return {
                 "status": "connected",
-                "message": "Antigravity AgentAPI language server reachable and operational.",
+                "message": f"Antigravity AgentAPI language server reachable on {addr}.",
                 "latency_ms": latency,
                 "cli_path": self.cli_path,
+                "ls_address": addr,
             }
         except Exception as e:
             return {
@@ -65,6 +68,7 @@ class AntigravityRealAgentProvider(BaseAgentProvider):
     async def create_session(self, workspace_path: str, session_id: Optional[str] = None) -> str:
         """Create a real Antigravity session using new-conversation."""
         from app.security.policy_manager import policy_manager
+        from app.services.antigravity_discovery import antigravity_discovery
 
         if session_id:
             return session_id
@@ -79,13 +83,34 @@ class AntigravityRealAgentProvider(BaseAgentProvider):
         init_prompt = f"Initialize development session in workspace: {workspace_path}."
 
         cmd = [self.cli_path, "new-conversation", f"--title={title}", init_prompt]
+        env = antigravity_discovery.get_subprocess_env(workspace_path=workspace_path, cli_path=self.cli_path)
+
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             cwd=workspace_path,
+            env=env,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
         stdout, stderr = await proc.communicate()
+
+        if proc.returncode != 0:
+            out_err = stdout.decode("utf-8", errors="ignore").strip()
+            err_err = stderr.decode("utf-8", errors="ignore").strip()
+            # If failed due to stale credentials or server restart, invalidate cache and retry once
+            combined_err = (out_err + " " + err_err).lower()
+            if any(term in combined_err for term in ["connection error", "unauthenticated", "not set", "forcibly closed"]):
+                logger.warning("Session creation encountered connection error. Re-discovering Antigravity credentials...")
+                antigravity_discovery.invalidate_cache()
+                env = antigravity_discovery.get_subprocess_env(workspace_path=workspace_path, cli_path=self.cli_path)
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd,
+                    cwd=workspace_path,
+                    env=env,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, stderr = await proc.communicate()
 
         if proc.returncode != 0:
             out_err = stdout.decode("utf-8", errors="ignore").strip()
@@ -143,14 +168,35 @@ class AntigravityRealAgentProvider(BaseAgentProvider):
         )
 
         # Dispatch via agentapi.bat send-message
+        from app.services.antigravity_discovery import antigravity_discovery
+        env = antigravity_discovery.get_subprocess_env(workspace_path=workspace_path, cli_path=self.cli_path)
+
         cmd = [self.cli_path, "send-message", session_id, prompt]
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             cwd=workspace_path,
+            env=env,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
         stdout, stderr = await proc.communicate()
+
+        if proc.returncode != 0:
+            out_err = stdout.decode("utf-8", errors="ignore").strip()
+            err_err = stderr.decode("utf-8", errors="ignore").strip()
+            combined_err = (out_err + " " + err_err).lower()
+            if any(term in combined_err for term in ["connection error", "unauthenticated", "not set", "forcibly closed"]):
+                logger.warning("Task dispatch encountered connection error. Re-discovering Antigravity credentials...")
+                antigravity_discovery.invalidate_cache()
+                env = antigravity_discovery.get_subprocess_env(workspace_path=workspace_path, cli_path=self.cli_path)
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd,
+                    cwd=workspace_path,
+                    env=env,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                stdout, stderr = await proc.communicate()
 
         if proc.returncode != 0:
             out_err = stdout.decode("utf-8", errors="ignore").strip()
